@@ -1,0 +1,79 @@
+Subject: [PATCH] DLMalloc: Avoid ART take meta chunk as object address
+
+Fix the issue that when "Cause GC" in Android Device Monitor
+the logcat prints following error msg:
+" E art : Invalid object in managed heap: 0x73f3e008 "
+from which the reported addresses point to the meta chunk
+holding mspace and msegment info.
+---
+ libc/Android.mk                 |  5 +++++
+ libc/upstream-dlmalloc/malloc.c | 18 ++++++++++++++++++
+ libc/upstream-dlmalloc/malloc.h |  5 ++++-
+ 3 files changed, 27 insertions(+), 1 deletion(-)
+
+diff --git a/libc/Android.mk b/libc/Android.mk
+index f0c5e9f..b82e41d 100644
+--- a/libc/Android.mk
++++ b/libc/Android.mk
+@@ -611,6 +611,11 @@ ifneq ($(BOARD_MALLOC_ALIGNMENT),)
+   libc_common_cflags += -DMALLOC_ALIGNMENT=$(BOARD_MALLOC_ALIGNMENT)
+ endif
+ 
++# Dlmalloc meta chunk filter for ART non_moving_space, only for Ring 2.
++ifeq ($(BOARD_USES_DLMALLOC_META_CHUNK_FILTER), true)
++  libc_common_cflags += -DDLMALLOC_META_CHUNK_FILTER
++endif
++
+ # Define some common conlyflags
+ libc_common_conlyflags := \
+     -std=gnu99
+diff --git a/libc/upstream-dlmalloc/malloc.c b/libc/upstream-dlmalloc/malloc.c
+index 3c9d36b..11c01a3 100644
+--- a/libc/upstream-dlmalloc/malloc.c
++++ b/libc/upstream-dlmalloc/malloc.c
+@@ -5896,6 +5896,24 @@ void mspace_inspect_all(mspace msp,
+     USAGE_ERROR_ACTION(ms,ms);
+   }
+ }
++#ifdef DLMALLOC_META_CHUNK_FILTER
++// Check whether the given address points to meta chunk.
++// Meta chunk in dlmalloc contains info describe the mspace and msegment.
++bool mspace_meta_chunk_mem(mspace msp, void* addr) {
++  if (addr == NULL || msp == NULL) return false;
++  // The msp is mstate in the first chunk of dlmalloc. see init_user_mstate().
++  if (msp == addr) return true;
++  // If addr is msegmentptr, it contains meta info of the segment holding it.
++  mstate ms = (mstate)msp;
++  msegmentptr sp = segment_holding(ms, (char*)addr);
++  if (sp == NULL) return false;
++  // The base addr should be equal.
++  if (sp->base == ((msegmentptr)addr)->base) {
++    return true;
++  }
++  return false;
++}
++#endif
+ #endif /* MALLOC_INSPECT_ALL */
+ 
+ int mspace_trim(mspace msp, size_t pad) {
+diff --git a/libc/upstream-dlmalloc/malloc.h b/libc/upstream-dlmalloc/malloc.h
+index e52c9e5..895059e 100644
+--- a/libc/upstream-dlmalloc/malloc.h
++++ b/libc/upstream-dlmalloc/malloc.h
+@@ -608,9 +608,12 @@ size_t mspace_footprint(mspace msp);
+ size_t mspace_max_footprint(mspace msp);
+ size_t mspace_footprint_limit(mspace msp);
+ size_t mspace_set_footprint_limit(mspace msp, size_t bytes);
+-void mspace_inspect_all(mspace msp, 
++void mspace_inspect_all(mspace msp,
+                         void(*handler)(void *, void *, size_t, void*),
+                         void* arg);
++#ifdef DLMALLOC_META_CHUNK_FILTER
++bool mspace_meta_chunk_mem(mspace msp, void* addr);
++#endif
+ #endif  /* MSPACES */
+ 
+ #ifdef __cplusplus
+-- 
+1.9.1
+

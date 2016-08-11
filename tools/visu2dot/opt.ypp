@@ -1,0 +1,354 @@
+
+%{
+
+#include <string>
+#include <stdio.h>
+#include "dumper_handler.h"
+#include "compile_header.h"
+#include "instruction.h"
+#include "helpers.h"
+
+extern int yyerror (const std::string& s);
+extern int yylex (void);
+
+%}
+
+%union {
+  int64_t l;
+  double d;
+  char* string;
+  void* voidptr;
+}
+
+%token <l> INTEGER
+%token <string> STRING
+%token <d> FLOAT
+%token BEGIN_COMP
+%token END_COMP
+%token BEGIN_BLOCK
+%token END_BLOCK
+%token BEGIN_LOCALS
+%token END_LOCALS
+%token BEGIN_CFG
+%token END_CFG
+%token BEGIN_HIR
+%token END_HIR
+%token BEGIN_STATE
+%token END_STATE
+%token <string> IDENTIFIER
+%token EOL
+%token OPTIONS
+
+%type<voidptr> KEY
+%type<voidptr> VALUE NUMBER
+%type<voidptr> VALUES REGISTERS REGISTER_LIST
+%type<voidptr> KEY_VALUES CFG CFGS
+%type<voidptr> KEYS_VALUES BLOCKS
+%type<voidptr> COMP_HEADER HIR_LIST HIRS
+%type<voidptr> HIR INST COMPLETE_INST BLOCK
+
+%%
+
+FILE: COMP FILE |
+
+COMP: COMP_HEADER
+  CFGS {
+  DEBUG_PRINT("Parsed finished\n");
+  std::vector<Graph*>* graphs = static_cast<std::vector<Graph*>*>($2);
+
+  KeysValues* ksvs = static_cast<KeysValues*>($1);
+  const std::vector<Value>& name_key_value = ksvs->GetValues("name");
+  const Value& value = name_key_value[0];
+  char* name = value.element.name;
+
+  fprintf(stderr, "Requesting a dump for %s\n", name);
+
+  ReformatName(name);
+
+  for (std::vector<Graph*>::const_iterator it = graphs->begin(); it != graphs->end(); it++) {
+    Graph* graph = *it;
+    fprintf(stderr, "Dumping a graph for it\n");
+    graph->DumpGraph(name);
+  }
+}
+
+COMP_HEADER: BEGIN_COMP
+             EOL
+             KEYS_VALUES
+             END_COMP
+             EOL {
+               KeysValues* ksvs = static_cast<KeysValues*> ($3);
+               $$ = $3;
+             }
+
+KEYS_VALUES: KEY_VALUES
+            EOL
+            KEYS_VALUES {
+              KeyValues* kvs = static_cast<KeyValues*> ($1);
+              KeysValues* ksvs = static_cast<KeysValues*> ($3);
+
+              ksvs->PushValue(kvs);
+              $$ = ksvs;
+            } | {
+              $$ = new KeysValues();
+            }
+
+KEY_VALUES: KEY VALUES {
+            std::vector<Value>* values = static_cast<std::vector<Value>*>($2);
+            char* name = static_cast<char*>($1);
+            KeyValues* kv = new KeyValues(name, values);
+            $$ = kv;
+           } |
+           KEY {
+             char* s = static_cast<char*>($1);
+             KeyValues* kv = new KeyValues(s);
+             $$ = kv;
+           } |
+           KEY VALUES '[' LIST_NUMBERS ']' {
+             // TODO... handle list numbers
+            std::vector<Value>* values = static_cast<std::vector<Value>*>($2);
+            char* name = static_cast<char*>($1);
+            KeyValues* kv = new KeyValues(name, values);
+            $$ = kv;
+           }
+
+LIST_NUMBERS: INTEGER LIST_NUMBERS | INTEGER
+
+KEY: IDENTIFIER {
+       $$ = $1;
+     } |
+     INTEGER {
+      const int max = 16;
+      char* result = new char[max];
+      snprintf(result, max, "%ld", $1);
+      $$ = result;
+     }
+
+VALUES: VALUE VALUES {
+          std::vector<Value>* values = static_cast<std::vector<Value>*>($2);
+          Value* value = static_cast<Value*>($1);
+          values->push_back(*value);
+          $$ = values;
+        } |
+        VALUE {
+          std::vector<Value>* values = new std::vector<Value>();
+          $$ = values;
+          Value* value = static_cast<Value*>($1);
+          values->push_back(*value);
+        }
+
+NUMBER: INTEGER {
+         Value* result = new Value($1);
+         $$ = result;
+       } |
+       FLOAT {
+         Value* result = new Value($1);
+         $$ = result;
+       }
+
+VALUE: STRING {
+        char* s = $1;
+        $$ = new Value(s);
+       } |
+       NUMBER {
+         $$ = $1;
+       } |
+       IDENTIFIER {
+         Value* result = new Value($1);
+         result->type = Identifier;
+         $$ = result;
+         $$ = result;
+       }
+
+CFGS: CFG CFGS {
+        std::vector<Graph*>* graphs = static_cast<std::vector<Graph*>*>($2);
+        Graph* graph = static_cast<Graph*>($1);
+        graphs->push_back(graph);
+        $$ = graphs;
+      }
+      | {
+        $$ = new std::vector<Graph*>();
+      }
+
+CFG: BEGIN_CFG EOL
+     KEYS_VALUES
+     BLOCKS
+     END_CFG EOL {
+       std::vector<BasicBlock*>& bbs = *static_cast<std::vector<BasicBlock*>*>($4);
+
+       KeysValues* ksvs = static_cast<KeysValues*>($3);
+
+       const std::vector<Value>& name_key_value = ksvs->GetValues("name");
+       const Value& value = name_key_value[0];
+       char* name = strdup(value.element.name);
+       ReformatName(name);
+
+       // Invert order.
+       size_t max = bbs.size();
+       for (size_t i = 0; i < max / 2; i++) {
+         BasicBlock* left = bbs[i];
+         BasicBlock* right = bbs[max - 1 - i];
+         bbs[i] = right;
+         bbs[max - 1 - i] = left;
+       }
+
+       Graph* graph = new Graph(name, bbs);
+       $$ = graph;
+     }
+
+BLOCKS: BLOCK BLOCKS {
+          std::vector<BasicBlock*>* bbs = static_cast<std::vector<BasicBlock*>*>($2);
+          BasicBlock* bb = static_cast<BasicBlock*>($1);
+          bbs->push_back(bb);
+          $$ = bbs;
+        }
+        | {
+          $$ = new std::vector<BasicBlock*>();
+        }
+
+BLOCK: BEGIN_BLOCK EOL
+        KEYS_VALUES
+        STATE
+        HIRS
+        END_BLOCK EOL {
+          std::vector<Instruction*>& list = *static_cast<std::vector<Instruction*>*>($5);
+          KeysValues* ksvs = static_cast<KeysValues*>($3);
+
+          const std::vector<Value>& name_key_value = ksvs->GetValues("name");
+          const Value& value = name_key_value[0];
+
+          // Invert order.
+          size_t max = list.size();
+          for (size_t i = 0; i < max / 2; i++) {
+            Instruction* left = list[i];
+            Instruction* right = list[max - 1 - i];
+            list[i] = right;
+            list[max - 1 - i] = left;
+          }
+
+          const std::vector<Value>& successor_list = ksvs->GetValues("successors");
+
+          BasicBlock* bb = new BasicBlock(value.element.name, list);
+          // Read them backwards since we turned them around.
+          for (std::vector<Value>::const_reverse_iterator it = successor_list.rbegin();
+                                                  it != successor_list.rend();
+                                                  ++it) {
+            Value succ = *it;
+            bb->AddNext(succ.element.name);
+          }
+          $$ = bb;
+        }
+
+STATE:
+  BEGIN_STATE EOL
+    BEGIN_LOCALS EOL
+      KEYS_VALUES
+    END_LOCALS EOL
+  END_STATE EOL
+
+HIRS:
+  BEGIN_HIR EOL
+   HIR_LIST
+  END_HIR EOL {
+    $$ = $3;
+  }
+
+HIR_LIST:
+  HIR EOL HIR_LIST {
+    std::vector<Instruction*>* list = static_cast<std::vector<Instruction*>*>($3);
+    Instruction* insn = static_cast<Instruction*>($1);
+    list->push_back(insn);
+    $$ = list;
+  }
+  | {
+    $$ = new std::vector<Instruction*>();
+  }
+
+HIR:
+  INTEGER INTEGER IDENTIFIER COMPLETE_INST SUFFIX_HIR '<' '|' '@' {
+    CompleteInsn* complete_insn = static_cast<CompleteInsn*> ($4);
+    Instruction* insn = new Instruction($1, $2, $3, complete_insn->GetOpcode(),
+                                        complete_insn->GetValue());
+
+    std::vector<std::string>* registers = complete_insn->GetRegisters();
+
+    if (registers != nullptr) {
+      for(std::vector<std::string>::const_iterator it = registers->begin();
+          it != registers->end();
+          it++) {
+        insn->AddRegister(strdup(it->c_str()));
+      }
+    }
+
+    $$ = insn;
+  }
+
+SUFFIX_HIR:
+  OPTIONS |
+
+COMPLETE_INST:
+  INST {
+    $$ = $1;
+  } |
+  INST REGISTER_LIST {
+    CompleteInsn* complete_insn = static_cast<CompleteInsn*> ($1);
+    std::vector<std::string>* ptr_list = static_cast<std::vector<std::string>*>($2);
+    complete_insn->AddRegisterList(ptr_list);
+    $$ = complete_insn;
+  }
+
+INST:
+  IDENTIFIER {
+    CompleteInsn* insn = new CompleteInsn($1);
+    $$ = insn;
+  } |
+  IDENTIFIER NUMBER {
+    Value* value = static_cast<Value*> ($2);
+    CompleteInsn* insn = new CompleteInsn($1, value);
+    $$ = insn;
+  } |
+  IDENTIFIER IDENTIFIER {
+    Value* value = new Value($2);
+    CompleteInsn* insn = new CompleteInsn($1, value);
+    $$ = insn;
+  }
+
+REGISTER_LIST:
+   '[' REGISTERS ']' {
+     std::vector<std::string>* ptr_list = static_cast<std::vector<std::string>*>($2);
+     std::vector<std::string>& list = *ptr_list;
+     // Invert order.
+     size_t max = list.size();
+     for (size_t i = 0; i < max / 2; i++) {
+       std::string left = list[i];
+       std::string right = list[max - 1 - i];
+       list[i] = right;
+       list[max - 1 - i] = left;
+     }
+     $$ = ptr_list;
+   }
+
+REGISTERS:
+  IDENTIFIER REGISTERS {
+    std::vector<std::string>* list = static_cast<std::vector<std::string>*>($2);
+    const char* name = $1;
+    list->push_back(name);
+    $$ = list;
+  }
+  | {
+    $$ = new std::vector<std::string>();
+  }
+
+%%
+
+int yyerror (const std::string& s) {
+  DEBUG_PRINT("Error here: %s\n", s.c_str());
+  return 0;
+}
+
+int main(void) {
+  fprintf(stderr, "Start\n");
+  yyparse();
+  fprintf(stderr, "Stop\n");
+  return 0;
+}

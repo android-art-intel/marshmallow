@@ -1,0 +1,36 @@
+Subject: [PATCH] ART: Allow vendor to deploy optimized VM
+
+This patch updates the main-level make file to consider using files
+from a vendor defined VM directory. This is done so that vendor can
+deploy optimized VM and compiler.
+
+In order to test this out, build "art" by also defining VENDOR_ART_PATH.
+For example:
+mm -j10 VENDOR_ART_PATH=$ANDROID_BUILD_TOP/art-extension
+---
+ Android.mk | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/Android.mk b/Android.mk
+index 3467f1d..0767502 100644
+--- a/Android.mk
++++ b/Android.mk
+@@ -18,6 +18,15 @@ LOCAL_PATH := $(call my-dir)
+ 
+ art_path := $(LOCAL_PATH)
+ 
++# Allow vendor to deploy another ART VM with proprietary optimizations.
++ifneq ($(VENDOR_ART_PATH),)
++  # Set this way to reduce conflicts in file.
++  art_path := $(VENDOR_ART_PATH)
++else
++  # If vendor is not deploying separate VM, just use ART.
++  VENDOR_ART_PATH := $(art_path)
++endif
++
+ ########################################################################
+ # clean-oat rules
+ #
+-- 
+1.9.1
+

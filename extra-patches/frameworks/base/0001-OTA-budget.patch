@@ -1,0 +1,87 @@
+Subject: [PATCH] OTA budget
+
+This patch limits the boot compilation time to 7 mins.
+---
+ .../android/server/pm/PackageManagerService.java   | 43 +++++++++++++++++++++-
+ 1 file changed, 42 insertions(+), 1 deletion(-)
+
+diff --git a/services/core/java/com/android/server/pm/PackageManagerService.java b/services/core/java/com/android/server/pm/PackageManagerService.java
+index c1d091b..9b3f443 100644
+--- a/services/core/java/com/android/server/pm/PackageManagerService.java
++++ b/services/core/java/com/android/server/pm/PackageManagerService.java
+@@ -568,6 +568,10 @@ public class PackageManagerService extends IPackageManager.Stub {
+ 
+     final PackageInstallerService mInstallerService;
+ 
++    // BEGIN Intel Changes for Selective Compilation.
++    private static boolean SELECTIVE_ENABLED = true;
++    // END Intel Changes for Selective Compilation.
++
+     private final PackageDexOptimizer mPackageDexOptimizer;
+ 
+     private AtomicInteger mNextMoveId = new AtomicInteger();
+@@ -6112,6 +6116,10 @@ public class PackageManagerService extends IPackageManager.Stub {
+                 filterRecentlyUsedApps(sortedPkgs);
+             }
+ 
++            // When endTimeStamp is less than or equal to the current time,
++            // we have exhaused our budget.
++            final long endTimeStamp = setEndTimeStamp();
++
+             int i = 0;
+             int total = sortedPkgs.size();
+             File dataDir = Environment.getDataDirectory();
+@@ -6126,8 +6134,41 @@ public class PackageManagerService extends IPackageManager.Stub {
+                     break;
+                 }
+                 performBootDexOpt(pkg, ++i, total);
++                if (!checkBudgetTimeIsOk(endTimeStamp)) {
++                    break;
++                }
++            }
++        }
++    }
++
++    private long setEndTimeStamp() {
++        final boolean DEFAULT_SELECTIVE_ENABLED = true;
++        SELECTIVE_ENABLED = SystemProperties.getBoolean("persist.selective.enabled", DEFAULT_SELECTIVE_ENABLED);
++        if (!SELECTIVE_ENABLED) {
++            return 0;
++        }
++        final long DEFAULT_OTA_BUDGET = 7 * 60 * 1000;  // 7 mins in milliseconds.
++        final long OTA_BUDGET = SystemProperties.getLong(
++            "persist.selective.ota_budget", DEFAULT_OTA_BUDGET);
++        Log.i(TAG, "Attempting to optimize all packages under budget. OTA BUDGET is "
++            + OTA_BUDGET + "ms.");
++        return System.currentTimeMillis() + OTA_BUDGET;
++    }
++
++    private static boolean checkBudgetTimeIsOk(long endTimeStamp) {
++        // endTimeStamp is not set, so it is ok to compile all.
++        if (endTimeStamp == 0) {
++             return true;
++        }
++        long timeRemaining = endTimeStamp - System.currentTimeMillis();
++        // We haven't exhausted the time budget.
++        if (timeRemaining > 0) {
++            if (DEBUG_DEXOPT) {
++                Log.i(TAG, "Time budget left: " + timeRemaining + "ms.");
+             }
++            return true;
+         }
++        return false;
+     }
+ 
+     private void filterRecentlyUsedApps(Collection<PackageParser.Package> pkgs) {
+@@ -6199,7 +6240,7 @@ public class PackageManagerService extends IPackageManager.Stub {
+     }
+ 
+     public boolean performDexOpt(String packageName, String instructionSet, boolean backgroundDexopt) {
+-        boolean dexopt = mLazyDexOpt || backgroundDexopt;
++        boolean dexopt = mLazyDexOpt || backgroundDexopt || SELECTIVE_ENABLED;
+         boolean updateUsage = !backgroundDexopt;  // Don't update usage if this is just a backgroundDexopt
+         if (!dexopt && !updateUsage) {
+             // We aren't going to dexopt or update usage, so bail early.
+-- 
+1.9.1
+

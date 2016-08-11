@@ -1,0 +1,44 @@
+Subject: [PATCH] Cache java.util.regex.Pattern compiled instance
+
+The Pattern.compile method could be quite heavy operation and this patch
+avoids duplicate consecutive compilation of the same regex patterns.
+---
+ luni/src/main/java/java/util/regex/Pattern.java | 18 +++++++++++++++++-
+ 1 file changed, 17 insertions(+), 1 deletion(-)
+
+diff --git a/luni/src/main/java/java/util/regex/Pattern.java b/luni/src/main/java/java/util/regex/Pattern.java
+index 8f3fb12..6272b44 100644
+--- a/luni/src/main/java/java/util/regex/Pattern.java
++++ b/luni/src/main/java/java/util/regex/Pattern.java
+@@ -374,11 +374,27 @@ public final class Pattern implements Serializable {
+         return new Pattern(regularExpression, flags);
+     }
+ 
++    private static String lastStr = ".";
++    private static int lastFlags = 0;
++    private static Pattern lastPattern = Pattern.compile(lastStr, lastFlags);
++    private static final Object syncObject = new Object();
++
+     /**
+      * Equivalent to {@code Pattern.compile(pattern, 0)}.
+      */
+     public static Pattern compile(String pattern) {
+-        return new Pattern(pattern, 0);
++        synchronized (syncObject) {
++            if (lastStr == pattern && pattern != null) {
++                return lastPattern;
++            }
++        }
++        Pattern curPattern = new Pattern(pattern, 0);
++
++        synchronized (syncObject) {
++            lastStr = pattern;
++            lastPattern = curPattern;
++        }
++        return curPattern;
+     }
+ 
+     private Pattern(String pattern, int flags) throws PatternSyntaxException {
+-- 
+1.9.1
+

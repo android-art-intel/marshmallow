@@ -1,0 +1,35 @@
+begin_compilation
+  name "void Test.<init>()"
+  method "void Test.<init>()"
+  date 1430346496
+end_compilation
+begin_cfg
+  name "builder (after)"
+  begin_block
+    name "B0"
+    from_bci -1
+    to_bci -1
+    predecessors
+    successors
+    xhandlers
+    flags
+    begin_states
+      begin_locals
+        size 0
+        method "None"
+      end_locals
+    end_states
+    begin_HIR
+      0 2 v0 Local<|@
+      0 2 v1 Local<|@
+      0 2 v2 Local<|@
+      0 1 l3 ParameterValue<|@
+      0 0 v4 StoreLocal [ v1 l3 ]<|@
+      0 1 z5 ParameterValue<|@
+      0 0 v6 StoreLocal [ v2 z5 ]<|@
+      0 1 i8 IntConstant 0<|@
+      0 0 v23 SuspendCheck<|@
+      0 0 v24 Goto<|@
+    end_HIR
+  end_block
+end_cfg

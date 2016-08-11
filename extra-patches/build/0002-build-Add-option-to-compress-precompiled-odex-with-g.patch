@@ -1,0 +1,111 @@
+Subject: [PATCH 2/2] build: Add option to compress precompiled odex with gzip
+
+To reduce /system size, we add the option to compress odex files
+
+Run make with WITH_DEXPREOPT_COMP=true to get odex compressed.
+
+This patch needs to be supported by frameworks/native/cmds/installd
+
+This patch was upstreamed to AOSP (see
+https://android-review.googlesource.com/#/q/I54dbfcdc58bc0f57f7eccc3929c09295c597794b)
+---
+ core/dex_preopt_libart.mk       |  7 +++++++
+ core/dex_preopt_odex_install.mk | 12 +++++++++++-
+ core/setup_one_odex.mk          | 17 +++++++++++++++++
+ 3 files changed, 35 insertions(+), 1 deletion(-)
+
+diff --git a/core/dex_preopt_libart.mk b/core/dex_preopt_libart.mk
+index 844ef7d..ee550c6 100644
+--- a/core/dex_preopt_libart.mk
++++ b/core/dex_preopt_libart.mk
+@@ -71,6 +71,13 @@ define get-odex-file-path
+ $(dir $(2))oat/$(1)/$(basename $(notdir $(2))).odex
+ endef
+ 
++# Returns the path to the .odex.gz file
++# $(1): the arch name.
++# $(2): the full path (including file name) of the corresponding .jar or .apk.
++define get-odex-comp-path
++$(dir $(2))oat/$(1)/$(basename $(notdir $(2))).odex.gz
++endef
++
+ # Returns the path to the image file (such as "/system/framework/<arch>/boot.art"
+ # $(1): the arch name (such as "arm")
+ # $(2): the image location (such as "/system/framework/boot.art")
+diff --git a/core/dex_preopt_odex_install.mk b/core/dex_preopt_odex_install.mk
+index 73c8146..605fc7e 100644
+--- a/core/dex_preopt_odex_install.mk
++++ b/core/dex_preopt_odex_install.mk
+@@ -42,6 +42,7 @@ endif
+ 
+ built_odex :=
+ installed_odex :=
++compressed_odex :=
+ built_installed_odex :=
+ ifdef LOCAL_DEX_PREOPT
+ dexpreopt_boot_jar_module := $(filter $(DEXPREOPT_BOOT_JARS_MODULES),$(LOCAL_MODULE))
+@@ -110,13 +111,22 @@ $(installed_odex) : $(dir $(LOCAL_INSTALLED_MODULE))%$(notdir $(word 1,$(install
+     | $(ACP)
+ 	@echo "Install: $@"
+ 	$(copy-file-to-target)
++
++# Ugly syntax - See the definition get-odex-comp-path.
++$(compressed_odex) : $(dir $(LOCAL_INSTALLED_MODULE))%$(notdir $(word 1,$(compressed_odex))) \
++                   : $(dir $(LOCAL_BUILT_MODULE))%$(notdir $(word 1,$(built_odex))) \
++    | $(MINIGZIP)
++	$(hide) mkdir -p $(dir $@)
++	$(MINIGZIP) -9 < $< > $@
+ endif
+ 
+-# Add the installed_odex to the list of installed files for this module.
++# Add the installed_odex and compressed_odex to the list of installed files for this module.
++ALL_MODULES.$(my_register_name).INSTALLED += $(compressed_odex)
+ ALL_MODULES.$(my_register_name).INSTALLED += $(installed_odex)
+ ALL_MODULES.$(my_register_name).BUILT_INSTALLED += $(built_installed_odex)
+ 
+ # Make sure to install the .odex when you run "make <module_name>"
++$(my_register_name): $(compressed_odex)
+ $(my_register_name): $(installed_odex)
+ 
+ endif # LOCAL_DEX_PREOPT
+diff --git a/core/setup_one_odex.mk b/core/setup_one_odex.mk
+index ec8a28a..1f56a7d 100644
+--- a/core/setup_one_odex.mk
++++ b/core/setup_one_odex.mk
+@@ -18,7 +18,16 @@
+ # Input variables: my_2nd_arch_prefix
+ # Output(modified) variables: built_odex, installed_odex, built_installed_odex
+ 
++my_local_odex_comp :=
++
++ifeq (true,$(WITH_DEXPREOPT_COMP))
++ifneq ($(filter %.apk,$(LOCAL_INSTALLED_MODULE)),)
++my_local_odex_comp := true
++endif
++endif
++
+ my_built_odex := $(call get-odex-file-path,$($(my_2nd_arch_prefix)DEX2OAT_TARGET_ARCH),$(LOCAL_BUILT_MODULE))
++
+ ifdef LOCAL_DEX_PREOPT_IMAGE_LOCATION
+ my_dex_preopt_image_location := $(LOCAL_DEX_PREOPT_IMAGE_LOCATION)
+ else
+@@ -32,8 +41,16 @@ $(my_built_odex) : $($(my_2nd_arch_prefix)DEXPREOPT_ONE_FILE_DEPENDENCY_BUILT_BO
+     $(DEXPREOPT_ONE_FILE_DEPENDENCY_TOOLS) \
+     $(my_dex_preopt_image_filename)
+ 
++ifeq (true,$(my_local_odex_comp))
++my_installed_odex := $(call get-odex-comp-path,$($(my_2nd_arch_prefix)DEX2OAT_TARGET_ARCH),$(LOCAL_INSTALLED_MODULE))
++else
+ my_installed_odex := $(call get-odex-file-path,$($(my_2nd_arch_prefix)DEX2OAT_TARGET_ARCH),$(LOCAL_INSTALLED_MODULE))
++endif
+ 
+ built_odex += $(my_built_odex)
++ifeq (true,$(my_local_odex_comp))
++compressed_odex += $(my_installed_odex)
++else
+ installed_odex += $(my_installed_odex)
++endif
+ built_installed_odex += $(my_built_odex):$(my_installed_odex)
+-- 
+1.9.1
+

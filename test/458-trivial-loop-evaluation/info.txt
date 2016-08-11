@@ -1,0 +1,1 @@
+Tests removal of loops that are eligible to trivial loop evaluation.

@@ -1,0 +1,73 @@
+Subject: [PATCH 2/2] Pass two options to dex2oat
+
+This patch checks dalvik.vm.usejit to pass two options to dex2oat
+to change the huge method threshold and the all dex file threshold
+under the JIT environment.
+---
+ cmds/installd/commands.cpp | 29 +++++++++++++++++++++++++++++
+ 1 file changed, 29 insertions(+)
+
+diff --git a/cmds/installd/commands.cpp b/cmds/installd/commands.cpp
+index 191e39f..14dff18 100644
+--- a/cmds/installd/commands.cpp
++++ b/cmds/installd/commands.cpp
+@@ -831,6 +831,7 @@ static void run_dex2oat(int zip_fd, int oat_fd, const char* input_file_name,
+                              (strcmp(vold_decrypt, "1") == 0)));
+ 
+     bool use_jit = check_boolean_property("debug.usejit");
++    bool dalvik_vm_usejit = check_boolean_property("dalvik.vm.usejit");
+     bool generate_debug_info = check_boolean_property("debug.generate-debug-info");
+ 
+     static const char* DEX2OAT_BIN = "/system/bin/dex2oat";
+@@ -853,6 +854,8 @@ static void run_dex2oat(int zip_fd, int oat_fd, const char* input_file_name,
+     char dex2oat_compiler_filter_arg[strlen("--compiler-filter=") + PROPERTY_VALUE_MAX];
+     bool have_dex2oat_swap_fd = false;
+     char dex2oat_swap_fd[strlen("--swap-fd=") + MAX_INT_LEN];
++    char dex2oat_huge_method_max_arg[strlen("--huge-method-max=") + MAX_INT_LEN];
++    char dex2oat_all_dex_file_max_arg[strlen("--all-dex-file-max=") + MAX_INT_LEN];
+ 
+     sprintf(zip_fd_arg, "--zip-fd=%d", zip_fd);
+     sprintf(zip_location_arg, "--zip-location=%s", input_file_name);
+@@ -926,6 +929,7 @@ static void run_dex2oat(int zip_fd, int oat_fd, const char* input_file_name,
+                      + (have_dex2oat_relocation_skip_flag ? 2 : 0)
+                      + (generate_debug_info ? 1 : 0)
+                      + (debuggable ? 1 : 0)
++                     + (dalvik_vm_usejit ? 2 : 0)
+                      + dex2oat_flags_count];
+     int i = 0;
+     argv[i++] = DEX2OAT_BIN;
+@@ -969,6 +973,31 @@ static void run_dex2oat(int zip_fd, int oat_fd, const char* input_file_name,
+     if (debuggable) {
+         argv[i++] = "--debuggable";
+     }
++    if (dalvik_vm_usejit) {
++        char buff[PROPERTY_VALUE_MAX];
++        // The default is 800 for huge_method_max.
++        int huge_method_max = 800;
++        if (property_get("dalvik.vm.aothugemethodmax", buff, "") > 0) {
++            char* end;
++            unsigned long value = strtoul(buff, &end, 10);
++            if (*end == '\0' && value > 0 && value <= 0x7FFFFFFF) {
++                huge_method_max = value;
++            }
++        }
++        sprintf(dex2oat_huge_method_max_arg, "--huge-method-max=%d", huge_method_max);
++        // The default is 25MB for all_dex_file_max.
++        int all_dex_file_max = 25 * 1024 * 1024;
++        if (property_get("dalvik.vm.aotalldexfilemax", buff, "") > 0) {
++            char* end;
++            unsigned long value = strtoul(buff, &end, 10);
++            if (*end == '\0' && value > 0 && value <= 0x7FFFFFFF) {
++                all_dex_file_max = value;
++            }
++        }
++        sprintf(dex2oat_all_dex_file_max_arg, "--all-dex-file-max=%d", all_dex_file_max);
++        argv[i++] = dex2oat_huge_method_max_arg;
++        argv[i++] = dex2oat_all_dex_file_max_arg;
++    }
+     if (dex2oat_flags_count) {
+         i += split(dex2oat_flags, argv + i);
+     }
+-- 
+1.9.1
+
