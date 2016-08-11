@@ -37,16 +37,15 @@ In addition to the base optimizations in the Android Open Source Project (AOSP),
 
 To start using ART-Extension one needs to follow the steps:
 
-* Step 1. Download AOSP Marshmallow source code. To do that execute setup.sh script. It will download the correct version of AOSP. Setup proxy settings on your system if needed.
+1. Step 1. Download AOSP Marshmallow source code. To do that execute setup.sh script. It will download the correct version of AOSP. Setup proxy settings on your system if needed.
 
-* Step 2. Apply patches needed for ART-Extension. To do that execute apply_extra.sh script.
+2. Step 2. Apply patches needed for ART-Extension. To do that execute apply_extra.sh script.
 
-* Step 3. Build Android image using AOSP for your device/emulator:
+3. Step 3. Build Android image using AOSP for your device/emulator:
+   * See instructions at https://source.android.com/source/ (your device must be supported by AOSP build or use x86 emulator).
+   * To start build with ART-Extension one needs to use VENDOR_ART_PATH=vendor/intel/art-extension option in make, example: "makeÂ distÂ WITH_DEXPREOPT=falseÂ VENDOR_ART_PATH=vendor/art-extension"
 
-** See instructions at https://source.android.com/source/ (your device must be supported by AOSP build or use x86 emulator).
-** To start build with ART-Extension one needs to use VENDOR_ART_PATH=vendor/intel/art-extension option in make, example: "make dist WITH_DEXPREOPT=false VENDOR_ART_PATH=vendor/art-extension"
-
-* Step 4. Flash your device (use AOSP instructions), test it, and then try.
+4. Step 4. Flash your device (use AOSP instructions), test it, and then try.
 
 ## License
 
