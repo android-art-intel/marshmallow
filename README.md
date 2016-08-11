@@ -50,5 +50,6 @@ To start using ART-Extension one needs to follow the steps:
 ## License
 
 Apache License Version 2.0
+
 See LICENSE file for details
 
