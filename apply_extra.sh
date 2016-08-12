@@ -8,7 +8,7 @@ else
   [ ! -d "$CURRENT_DIR" ] && CURRENT_DIR=$(dirname $CURRENT_DIR)
   export CURRENT_DIR=$(cd $CURRENT_DIR; pwd)
 fi
-WS_TOP=${CURRENT_DIR}/..
+WS_TOP=${CURRENT_DIR}
 EXTRA_PATCHES_DIR=${CURRENT_DIR}/extra-patches
 
 for file in $(find ${EXTRA_PATCHES_DIR}/ -name "*.patch"); do
