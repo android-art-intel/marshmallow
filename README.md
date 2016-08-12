@@ -44,6 +44,7 @@ To start using ART-Extension one needs to follow the steps:
 3. Step 3. Build Android image using AOSP for your device/emulator:
    * See instructions at https://source.android.com/source/ (your device must be supported by AOSP build or use x86 emulator).
    * To start build with ART-Extension one needs to use VENDOR_ART_PATH=<path to art-extension> option in make, example: "make dist VENDOR_ART_PATH=art-extension"
+   * ART-Extension was tested to build and boot to GUI on at least x86 emulator, to build ARM emulator one should add "WITH_DEXPREOPT=false" to the build options, besides testing showed ARM emulator was not able to boot to GUI.
 
 4. Step 4. Flash your device (use AOSP instructions), test it, and then try.
 
