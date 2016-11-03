@@ -1,0 +1,21 @@
+java.lang.ArithmeticException: divide by zero 100000
+java.lang.ArithmeticException: divide by zero 200000
+java.lang.ArithmeticException: divide by zero 300000
+java.lang.ArithmeticException: divide by zero 400000
+java.lang.ArithmeticException: divide by zero 500000
+java.lang.ArithmeticException: divide by zero 600000
+java.lang.ArithmeticException: divide by zero 700000
+java.lang.ArithmeticException: divide by zero 800000
+java.lang.ArithmeticException: divide by zero 900000
+java.lang.ArithmeticException: divide by zero 1000000
+java.lang.ArithmeticException: divide by zero 1100000
+java.lang.ArithmeticException: divide by zero 1200000
+java.lang.ArithmeticException: divide by zero 1300000
+java.lang.ArithmeticException: divide by zero 1400000
+java.lang.ArithmeticException: divide by zero 1500000
+java.lang.ArithmeticException: divide by zero 1600000
+java.lang.ArithmeticException: divide by zero 1700000
+java.lang.ArithmeticException: divide by zero 1800000
+java.lang.ArithmeticException: divide by zero 1900000
+java.lang.ArithmeticException: divide by zero 2000000
+b = 2215997510

@@ -1,0 +1,110 @@
+#!/bin/bash
+#
+# Copyright (C) 2015 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+logcat=$1
+str_res=""
+res=0
+
+packagename=$(basename `cd $packagedir ; pwd`)
+metapackagename=$(dirname `cd $packagedir ; pwd`)
+testname=${PWD##*/}
+
+if adb shell getprop ro.product.cpu.abi | grep "64"  > /dev/null 2>&1; then
+    BITS="x86_64"
+else 
+    BITS="x86"
+fi
+
+ANDROID_DATA=${ANDROID_DATA:="/data/"}
+
+
+function Exit()
+{
+   if [ $1 == 1 ]; then
+       echo "FAILED:" $2
+   else 
+       echo "PASSED:" $2
+   fi
+
+   exit $1
+}
+function ExpectedApplied_postproc()
+{
+    expectedCount=$1
+    non_temporal=`cat ${logcat} | grep "non_temporal_move: Mark NonTemporal ArraySet" | wc -l`
+    
+    if [[ "$non_temporal" == "$expectedCount" ]]; then
+        str_res+="EXPECTED: Movnti instruction and non temporal move optimization markers found $expectedCount time(s)"
+        res=0
+    else
+        str_res+="UNEXPECTED: non_temporal_move: Mark NonTemporal ArraySet found $non_temporal time(s) instead of $expectedCount"
+        res=1
+    fi
+    Exit $((res)) "$str_res"
+
+}
+
+function Oatdump_postproc()
+{
+    expectedCount=$1
+    oatFile="${ANDROID_DATA}/dalvik-cache/${BITS}/sdcard@data@Main.jar@classes.dex"
+    RESULTS_DIR=$(dirname $logcat)
+    #Cleanup
+    rm -f ${RESULTS_DIR}/oatdump
+    adb shell "oatdump --oat-file=${oatFile}" > ${RESULTS_DIR}/oatdump
+    expectedMovntiCount=${expectedCount}
+    if [[ "${BITS}" == "x86_64" ]] ; then 
+        if echo $testname | grep "Long_" > /dev/null 2>&1; then  
+            #Long store in 64-bit mode: there should be 1 movntiq instruction
+            movntiCount=`cat ${RESULTS_DIR}/oatdump | grep "movntiq" | wc -l`
+            expectedMovntiCount=${expectedCount}
+        else 
+            #int store in 64bit mode: 1 movnti inxtruction expected
+            movntiCount=`cat ${RESULTS_DIR}/oatdump | grep "movnti" | grep -v "movntiq" | wc -l`
+            expectedMovntiCount=${expectedCount}
+        fi
+    elif [[ "${BITS}" == "x86" ]] ; then 
+        if echo $testname | grep "Long_" > /dev/null 2>&1; then
+            #Long store in 32-bit mode: there should be 2 movnti instructions
+            movntiCount=`cat ${RESULTS_DIR}/oatdump | grep "movnti" | grep -v "movntiq" | wc -l`
+            expectedMovntiCount=$((expectedCount*2))
+        else  
+            #int store in 32bit mode: 1 movnti instruction expected
+            movntiCount=`cat ${RESULTS_DIR}/oatdump | grep "movnti" | grep -v "movntiq" | wc -l`
+            expectedMovntiCount=${expectedCount}
+        fi
+    else 
+        str_res+="Can't detect bits ${BITS} and store type (int/long)"
+        res=1
+    fi
+
+
+    if [[ "${movntiCount}" == "$expectedMovntiCount" ]]; then
+        str_res+="EXPECTED: Movnti instruction found $expectedMovntiCount time(s)"
+        res=0
+    else
+        str_res+="UNEXPECTED: Movnti instruction found ${movntiCount} time(s) instead of $expectedMovntiCount"
+        res=1
+    fi
+    Exit $((res)) "$str_res"
+
+}
+
+
+#ExpectedApplied_postproc $expectedCount
+   Oatdump_postproc $expectedCount
+

@@ -1,0 +1,2 @@
+Initial nextThingy value is class OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeStaticRangeSObject_001.Foo
+Final nextThingy value is class OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeStaticRangeSObject_001.Foo

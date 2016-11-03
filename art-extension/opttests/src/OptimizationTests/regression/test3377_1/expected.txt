@@ -1,0 +1,5 @@
+i b i1 = 87,0,-1
+f i2 f1 = 1117257728,79,1117519872
+i3 s by = 63,1864,-46
+Main.instanceCount Main.dFld Main.lArrFld = 173,4624070917402656768,-200290417858
+Main.iArrFld Main.fArrFld = 6917848472,4657403234352496640

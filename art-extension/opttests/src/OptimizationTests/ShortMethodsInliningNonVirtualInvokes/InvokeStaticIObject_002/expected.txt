@@ -1,0 +1,4 @@
+Initial nextThingy value is class OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeStaticIObject_002.Foo
+Initial nextThingy.a value is F
+Final nextThingy value is class OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeStaticIObject_002.Foo
+Final nextThingy.a value is G

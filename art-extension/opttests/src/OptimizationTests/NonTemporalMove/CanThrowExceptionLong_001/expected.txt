@@ -1,0 +1,5 @@
+java.lang.ArithmeticException: divide by zero
+	at OptimizationTests.NonTemporalMove.CanThrowExceptionLong_001.Main.testLoop(Main.java:35)
+	at OptimizationTests.NonTemporalMove.CanThrowExceptionLong_001.Main.test(Main.java:46)
+	at OptimizationTests.NonTemporalMove.CanThrowExceptionLong_001.Main.main(Main.java:51)
+0

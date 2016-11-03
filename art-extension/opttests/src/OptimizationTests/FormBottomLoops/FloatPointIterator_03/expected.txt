@@ -1,0 +1,6 @@
+Test FloatPointIterator_03; Subtest test19; Result: -Infinity
+Test FloatPointIterator_03; Subtest test20; Result: 1.0
+Test FloatPointIterator_03; Subtest test21; Result: Infinity
+Test FloatPointIterator_03; Subtest test22; Result: 326.0
+Test FloatPointIterator_03; Subtest test23; Result: 156750.859375
+Test FloatPointIterator_03; Subtest test24; Result: 4.567441625E8

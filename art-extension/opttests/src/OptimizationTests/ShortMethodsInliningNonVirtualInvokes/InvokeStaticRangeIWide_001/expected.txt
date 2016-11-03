@@ -1,0 +1,2 @@
+Initial nextThingy value is -10.0
+Final nextThingy value is 285.0

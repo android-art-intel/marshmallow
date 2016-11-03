@@ -1,0 +1,7 @@
+Test BreakContinue; Subtest test1; Result: 382
+Test BreakContinue; Subtest test2; Result: -140788314
+Test BreakContinue; Subtest test3; Result: 471
+Test BreakContinue; Subtest test4; Result: 5
+Test BreakContinue; Subtest test5; Result: 31
+Test BreakContinue; Subtest test6; Result: 317
+Test BreakContinue; Subtest test7; Result: 35

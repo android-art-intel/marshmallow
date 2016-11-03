@@ -1,0 +1,6 @@
+Test NestedLoop_03; Subtest test19; Result: 4428
+Test NestedLoop_03; Subtest test20; Result: 12814
+Test NestedLoop_03; Subtest test21; Result: 1073741825
+Test NestedLoop_03; Subtest test22; Result: 326
+Test NestedLoop_03; Subtest test23; Result: 303926
+Test NestedLoop_03; Subtest test24; Result: 455913070

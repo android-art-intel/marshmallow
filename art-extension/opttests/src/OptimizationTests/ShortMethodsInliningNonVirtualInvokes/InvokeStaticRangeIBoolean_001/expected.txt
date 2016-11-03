@@ -1,0 +1,2 @@
+Initial nextThingy value is false
+Final nextThingy value is true

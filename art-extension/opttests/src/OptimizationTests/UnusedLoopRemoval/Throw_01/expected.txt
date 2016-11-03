@@ -1,0 +1,3 @@
+java.lang.RuntimeException: Absolutely new RuntimeException
+	at OptimizationTests.UnusedLoopRemoval.Throw_01.Main.loop(Main.java:25)
+	at OptimizationTests.UnusedLoopRemoval.Throw_01.Main.main(Main.java:31)

@@ -1,0 +1,57 @@
+#!/bin/bash
+#
+# Copyright (C) 2008 The Android Open Source Project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Modified by Intel Corporation
+
+msg() {
+    [ "$VERBOSE" = "on" ] && echo "$@"
+}
+
+# the script accepts the following args:
+pckgname=$1
+testname=$2
+
+msg "build: progdir=${progdir}"
+msg "build: DEPLOY_DIR=${DEPLOY_DIR}"
+msg "build: TESTSUITE_NAME=${TESTSUITE_NAME}"
+
+# Stop if something fails.
+set -e
+
+cd ${DEPLOY_DIR}/bin
+testpath=${TESTSUITE_NAME}/${pckgname}/${testname}
+
+# Find primary test sources in src directory
+#SRCLIST="`find ${progdir}/${pckgname}/${testname}/src -name '*.java'`"
+SRCLIST="`find ${progdir}/src/${TESTSUITE_NAME}/${pckgname}/${testname} -name '*.java'`"
+
+# Find common/shared test sources in the shared directory
+[ -d "${progdir}/src/${TESTSUITE_NAME}/${pckgname}/shared" ] && SRCLIST="${SRCLIST} `find ${progdir}/src/${TESTSUITE_NAME}/${pckgname}/shared -name '*.java'`"
+
+#echo "SRCLIST = [ $SRCLIST ]"
+
+#${JAVAC} -d . -bootclasspath ${ANDROID_JAR} ${SRCLIST} || { echo "Could not compile ${SRCLIST}"; exit 1; }
+${JAVAC} ${JAVAC_OPTIONS} -d . -classpath ${ANDROID_JAR} ${SRCLIST} || { echo "Could not compile ${SRCLIST}"; exit 1; }
+
+# Find primary test binaries
+CLASSLIST="`find ${testpath} -name *.class`"
+
+# Find common/shared test binaries
+[ -d "${progdir}/src/${TESTSUITE_NAME}/${pckgname}/shared" ] && CLASSLIST="${CLASSLIST} `find ${TESTSUITE_NAME}/${pckgname}/shared -name '*.class'`"
+#echo "CLASSLIST = [ $CLASSLIST ]"
+
+dx --dex --output=${testpath}/Main.jar ${CLASSLIST} || \
+      { echo "Could not build ${testpath}/Main.jar"; exit 1; }

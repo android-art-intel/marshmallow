@@ -1,0 +1,2 @@
+Initial workJ value is 4.9E-324
+Final workJ value is 45.0

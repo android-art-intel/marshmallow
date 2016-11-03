@@ -1,0 +1,1 @@
+-Xcompiler-option --print-passes=constant_calculation_sinking -Xcompiler-option --disable-passes=loop_full_unrolling

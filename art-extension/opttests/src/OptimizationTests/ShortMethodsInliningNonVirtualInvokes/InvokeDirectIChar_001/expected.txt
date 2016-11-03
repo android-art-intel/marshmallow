@@ -1,0 +1,4 @@
+Initial nextThingy unicode value is \u0062
+Initial nextThingy byte value is 98
+Final nextThingy unicode value is \u008f
+Final nextThingy byte value is -113

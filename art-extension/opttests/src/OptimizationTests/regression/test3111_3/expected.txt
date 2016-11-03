@@ -1,0 +1,6 @@
+i i1 i2 = 82,81,85
+s i3 i4 = -8246,38512,-254
+d i5 lArr = 4635316295896959979,-12,-42834
+dArr fArr = -4583296492484312211,4658785721763495936
+Main.instanceCount Main.fFld Main.byFld = -10,-1011207996,-124
+Main.iFld Main.iArrFld = -24,-1392

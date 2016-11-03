@@ -1,0 +1,2 @@
+Initial sumArrElements = 45
+Final sumArrElements = 45

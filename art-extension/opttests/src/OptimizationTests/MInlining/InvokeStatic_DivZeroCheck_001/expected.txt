@@ -1,0 +1,13 @@
+1
+0
+0
+0
+0
+0
+0
+0
+0
+java.lang.ArithmeticException: divide by zero
+	at OptimizationTests.MInlining.InvokeStatic_DivZeroCheck_001.Main.b(Main.java:26)
+	at OptimizationTests.MInlining.InvokeStatic_DivZeroCheck_001.Main.test(Main.java:33)
+	at OptimizationTests.MInlining.InvokeStatic_DivZeroCheck_001.Main.main(Main.java:41)

@@ -1,0 +1,83 @@
+#!/bin/bash
+#
+# Copyright (C) 2015 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+#set -x
+prog="$0"
+while [ -h "${prog}" ]; do
+    newProg=`/bin/ls -ld "${prog}"`
+    newProg=`expr "${newProg}" : ".* -> \(.*\)$"`
+    if expr "x${newProg}" : 'x/' >/dev/null; then
+        prog="${newProg}"
+    else
+        progdir=`dirname "${prog}"`
+        prog="${progdir}/${newProg}"
+    fi
+done
+oldwd=`pwd`
+progdir=`dirname "${prog}"`
+cd "${progdir}"
+export progdir=`pwd`
+export prog="${progdir}"/`basename "${prog}"`
+
+#echo prog=$prog
+#echo progdir=$progdir
+
+JAVA_HOME=${JAVA_HOME:="<DEFAULT PATH TO JDK>"}
+ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:="<DEFAULT PATH TO ANDROID SDK>"}
+ANDROID_JAR=${ANDROID_SDK_ROOT}/platforms/android-17/android.jar
+
+[ ! -d "${JAVA_HOME}" ] && Exit 1 "Please set the JAVA_HOME variable"
+[ ! -d "${ANDROID_SDK_ROOT}" ] && Exit 1 "Please set the ANDROID_SDK_ROOT variable"
+
+TEST_RESULT=${TEST_RESULT:="test-results.csv"}
+LOGCAT_DELAY=${LOGCAT_DELAY:="1"}
+echo "VM_RUNTIME=${VM_RUNTIME:=ART}"
+
+export VM_RUNTIME
+export LOGCAT_DELAY
+export JAVA_HOME
+export ANDROID_SDK_ROOT
+export ANDROID_JAR
+#export SMALI
+#export PATH=${JAVA_HOME}/bin:${ANDROID_SDK_ROOT}/platform-tools:${ANDROID_SDK_ROOT}/tools:${SMALI}:$PATH
+export PATH=${JAVA_HOME}/bin:${ANDROID_SDK_ROOT}/platform-tools:${ANDROID_SDK_ROOT}:$PATH
+export SDCARDDATA=${SDCARDDATA:="y"}
+
+#GCOV environment
+export SET_GCOV_PREFIX_STRIP="export GCOV_PREFIX_STRIP=${GCOV_PREFIX_STRIP:-12}"
+export SET_GCOV_PREFIX="export GCOV_PREFIX=${GCOV_PREFIX:-/sdcard/coverage/}"
+
+export JAVA="java"
+export JAVAC="javac"
+export "JAVAC_OPTIONS=${JAVAC_OPTIONS:=}"
+export ADB="adb"
+
+msg "JAVA_HOME=${JAVA_HOME}"
+msg "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT}"
+msg "ANDROID_JAR=${ANDROID_JAR}"
+
+#echo "java: `which java`"
+#echo "adb: `which adb`"
+
+TESTSUITE_NAME=${TESTSUITE_NAME:=OptimizationTests}
+export TESTSUITE_NAME
+
+# Test suite's specific settings
+[ -r $progdir/define-local ] && source $progdir/define-local
+
+
+

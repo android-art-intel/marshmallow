@@ -1,0 +1,54 @@
+## The bound computation algorithm should be able to handle decreasing IVs
+ConstantCalculationSinking/DoWhileLoopIntLong_003                   
+ConstantCalculationSinking/ForLoopIntLong_009                    
+ConstantCalculationSinking/ForLoopIntLong_009_TopTested          
+ConstantCalculationSinking/WhileLoopIntLong_003                  
+## Count-down loops are not supported
+InductionVariable/IntSubstract_01
+InductionVariable/IntSubstract_02
+InductionVariable/LongSubstract_01
+InductionVariable/LongSubstract_02
+InductionVariable/LongSubstract_03
+## type cast
+InductionVariable/SupportedCast
+## Loop Full Unrolling optimization was disabled by default due to performance regression
+LoopUnrolling/EnhLoopSum
+LoopUnrolling/ForLoopSumArr
+LoopUnrolling/RangeCheckSetter
+LoopUnrolling/SimpleLoopArrayChar
+LoopUnrolling/SimpleLoopArrayInt
+LoopUnrolling/SimpleLoopBool
+LoopUnrolling/SimpleLoopInt
+LoopUnrolling/SimpleLoopLong
+LoopUnrolling/SimpleLoopStaticBool
+LoopUnrolling/SimpleLoopStaticInt
+LoopUnrolling/SimpleLoopStaticLong
+## the failures are due to "Remove invokes to empty methods" patch
+ShortMethodsInliningNonVirtualInvokes/InvokeDirectAEmpty_001
+ShortMethodsInliningNonVirtualInvokes/InvokeDirectIEmpty_001
+ShortMethodsInliningNonVirtualInvokes/InvokeDirectRangeAEmpty_001
+ShortMethodsInliningNonVirtualInvokes/InvokeDirectRangeIEmpty_001
+ShortMethodsInliningNonVirtualInvokes/InvokeDirectRangeSEmpty_001
+ShortMethodsInliningNonVirtualInvokes/InvokeDirectSEmpty_001
+ShortMethodsInliningNonVirtualInvokes/InvokeStaticAEmpty_001
+ShortMethodsInliningNonVirtualInvokes/InvokeStaticIEmpty_001
+ShortMethodsInliningNonVirtualInvokes/InvokeStaticRangeAEmpty_001
+ShortMethodsInliningNonVirtualInvokes/InvokeStaticRangeIEmpty_001
+ShortMethodsInliningNonVirtualInvokes/InvokeStaticRangeSEmpty_001
+ShortMethodsInliningNonVirtualInvokes/InvokeStaticSEmpty_001
+ShortMethodsInliningNonVirtualInvokes/InvokeSuperIEmpty_001
+ShortMethodsInliningNonVirtualInvokes/InvokeSuperRangeIEmpty_001
+ShortMethodsInliningNonVirtualInvokes/InvokeSuperRangeSEmpty_001
+ShortMethodsInliningNonVirtualInvokes/InvokeSuperSEmpty_001
+## calculation issue
+regression/test2580
+regression/test2890_1
+regression/test3170   # this test passes with JIT
+regression/test3722
+regression/test3774
+regression/test3852
+regression/test3859
+regression/test3906
+regression/test3937
+
+

@@ -1,0 +1,6 @@
+273
+additionalVar = 124
+124
+6.180007E23
+-Infinity
+269.0

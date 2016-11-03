@@ -1,0 +1,40 @@
+java.lang.ArithmeticException: divide by zero
+	at OptimizationTests.ConstantCalculationSinking.ThrowExceptionIntLong_002.Main.testLoopAddInt(Main.java:35)
+	at OptimizationTests.ConstantCalculationSinking.ThrowExceptionIntLong_002.Main.main(Main.java:190)
+-12
+java.lang.ArithmeticException: divide by zero
+	at OptimizationTests.ConstantCalculationSinking.ThrowExceptionIntLong_002.Main.testLoopAddLong(Main.java:179)
+	at OptimizationTests.ConstantCalculationSinking.ThrowExceptionIntLong_002.Main.main(Main.java:191)
+-12
+java.lang.ArithmeticException: divide by zero
+	at OptimizationTests.ConstantCalculationSinking.ThrowExceptionIntLong_002.Main.testLoopRemLong(Main.java:163)
+	at OptimizationTests.ConstantCalculationSinking.ThrowExceptionIntLong_002.Main.main(Main.java:192)
+-77
+java.lang.ArithmeticException: divide by zero
+	at OptimizationTests.ConstantCalculationSinking.ThrowExceptionIntLong_002.Main.testLoopRemInt(Main.java:147)
+	at OptimizationTests.ConstantCalculationSinking.ThrowExceptionIntLong_002.Main.main(Main.java:193)
+-77
+java.lang.ArithmeticException: divide by zero
+	at OptimizationTests.ConstantCalculationSinking.ThrowExceptionIntLong_002.Main.testLoopDivLong(Main.java:131)
+	at OptimizationTests.ConstantCalculationSinking.ThrowExceptionIntLong_002.Main.main(Main.java:194)
+-77
+java.lang.ArithmeticException: divide by zero
+	at OptimizationTests.ConstantCalculationSinking.ThrowExceptionIntLong_002.Main.testLoopDivInt(Main.java:115)
+	at OptimizationTests.ConstantCalculationSinking.ThrowExceptionIntLong_002.Main.main(Main.java:195)
+-77
+java.lang.ArithmeticException: divide by zero
+	at OptimizationTests.ConstantCalculationSinking.ThrowExceptionIntLong_002.Main.testLoopMulLong(Main.java:99)
+	at OptimizationTests.ConstantCalculationSinking.ThrowExceptionIntLong_002.Main.main(Main.java:196)
+177070
+java.lang.ArithmeticException: divide by zero
+	at OptimizationTests.ConstantCalculationSinking.ThrowExceptionIntLong_002.Main.testLoopMulInt(Main.java:83)
+	at OptimizationTests.ConstantCalculationSinking.ThrowExceptionIntLong_002.Main.main(Main.java:197)
+177070
+java.lang.ArithmeticException: divide by zero
+	at OptimizationTests.ConstantCalculationSinking.ThrowExceptionIntLong_002.Main.testLoopSubLong(Main.java:67)
+	at OptimizationTests.ConstantCalculationSinking.ThrowExceptionIntLong_002.Main.main(Main.java:198)
+-122
+java.lang.ArithmeticException: divide by zero
+	at OptimizationTests.ConstantCalculationSinking.ThrowExceptionIntLong_002.Main.testLoopSubInt(Main.java:51)
+	at OptimizationTests.ConstantCalculationSinking.ThrowExceptionIntLong_002.Main.main(Main.java:199)
+-122

@@ -1,0 +1,3 @@
+Initial nextThingy value is class OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeDirectRangeIObject_001.Foo
+Final nextThingy value is class OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeDirectRangeIObject_001.Foo
+test.thingies value is class OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeDirectRangeIObject_001.Foo

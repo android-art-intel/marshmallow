@@ -1,0 +1,1 @@
+-Xcompiler-option --print-passes=constant_calculation_sinking,non_temporal_move

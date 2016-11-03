@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+# Copyright (C) 2015 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+
+packagedir=`echo "$(cd $(dirname $0); pwd)/../"`
+
+declare -a testMethodsCounts=('testLoopAddIntNonAccumulationStyleExpr:0' 'testLoopAddInt:1' 'testLoopAddLong:1' 'testLoopSubInt:1' 'testLoopSubLong:1' 'testLoopMulInt:1' 'testLoopMulLong:1' 'testLoopDivInt:1' 'testLoopDivLong:1' 'testLoopRemInt:1' 'testLoopRemLong:1')
+
+# include the package's postproc
+if [ -f $packagedir/postproc_common ]; then
+    source $packagedir/postproc_common
+fi
+

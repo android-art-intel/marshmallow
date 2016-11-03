@@ -1,0 +1,2 @@
+Initial workJ value is 10
+Final workJ value is 605247

@@ -1,0 +1,1 @@
+-Xcompiler-option --print-passes=remove_loop_suspend_checks

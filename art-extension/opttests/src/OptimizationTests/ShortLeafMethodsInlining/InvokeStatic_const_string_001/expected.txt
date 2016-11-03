@@ -1,0 +1,2 @@
+Initial workJ value is  
+Final workJ value is This is a stringThis is a stringThis is a stringThis is a stringThis is a stringThis is a stringThis is a stringThis is a stringThis is a stringThis is a string 

@@ -1,0 +1,9 @@
+Test ConditionSwitch; Subtest test1; Result: -443212945
+Test ConditionSwitch; Subtest test2; Result: 455894611
+Test ConditionSwitch; Subtest test3; Result: 2105
+Test ConditionSwitch; Subtest test4; Result: 326
+Test ConditionSwitch; Subtest test4a; Result: 326
+Test ConditionSwitch; Subtest test5; Result: -300806
+Test ConditionSwitch; Subtest test6; Result: 303617
+Test ConditionSwitch; Subtest test6a; Result: 303667
+Test ConditionSwitch; Subtest test7; Result: 1231

@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+# Copyright (C) 2015 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+
+packagedir=`echo "$(cd $(dirname $0); pwd)/../"`
+
+declare -a testMethodsCounts=('test13:Complex Loop is already bottom tested (after gotos)' 'test14:Complex Loop is already bottom tested (after gotos)' 'test15:Complex Loop is already bottom tested (after gotos)' 'test16:Complex Loop is already bottom tested (after gotos)' 'test17:Complex Loop is already bottom tested (after gotos)==2' 'test18:Complex Loop is already bottom tested (after gotos)==4' 'test19:Complex Loop is already bottom tested (after gotos)' 'test20:Complex Loop is already bottom tested (after gotos)' 'test21:Complex Loop is already bottom tested (after gotos)' 'test22:Complex Loop is already bottom tested (after gotos)' 'test23:Complex Loop is already bottom tested (after gotos)' 'test24:Complex Loop is already bottom tested (after gotos)' )
+
+# include the package's postproc
+if [ -f $packagedir/postproc_common ]; then
+    source $packagedir/postproc_common
+fi
+

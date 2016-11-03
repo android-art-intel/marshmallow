@@ -1,0 +1,6 @@
+i i1 by = 88,88,-62
+i4 i5 i6 = 96,95,32
+iArr lArr dArr = -63537,-1369,9221120237041090560
+fArr = -4333729589001673856
+Main.instanceCount Main.dFld Main.bFld = -2746641,-4587711567430042874,1
+iMeth_check_sum: 7990

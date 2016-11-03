@@ -1,0 +1,2 @@
+Initial workJ value is \u0000
+Final workJ value is \ufff6

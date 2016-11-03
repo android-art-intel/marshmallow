@@ -1,0 +1,5 @@
+test loop: v20
+00_00: hash=-1 
+00_01: hash=-1 
+00_02: hash=-1 Caught java.lang.NullPointerException: Attempt to read from null array
+00_03: hash=-1 Caught java.lang.NullPointerException: Attempt to read from null array

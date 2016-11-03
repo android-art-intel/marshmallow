@@ -1,0 +1,4 @@
+java.lang.NullPointerException: Attempt to read from null array
+	at OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeDirectAThrowNullGet_002.Test.getThingies(Test.java:32)
+	at OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeDirectAThrowNullGet_002.Test.gimme(Test.java:42)
+	at OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeDirectAThrowNullGet_002.Main.main(Main.java:39)

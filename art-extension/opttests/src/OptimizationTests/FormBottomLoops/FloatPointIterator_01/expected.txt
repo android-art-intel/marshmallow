@@ -1,0 +1,12 @@
+Test FloatPointIterator_01; Subtest test1; Result: 179138.0
+Test FloatPointIterator_01; Subtest test10; Result: 1085.2920652134003
+Test FloatPointIterator_01; Subtest test11; Result: -76035.68295812607
+Test FloatPointIterator_01; Subtest test12; Result: -3.065156740625E7
+Test FloatPointIterator_01; Subtest test2; Result: 2659.594555955077
+Test FloatPointIterator_01; Subtest test3; Result: 30.0
+Test FloatPointIterator_01; Subtest test4; Result: 7.001309817036285E37
+Test FloatPointIterator_01; Subtest test5; Result: 334401.0
+Test FloatPointIterator_01; Subtest test6; Result: 104513.0
+Test FloatPointIterator_01; Subtest test7; Result: Infinity
+Test FloatPointIterator_01; Subtest test8; Result: 313510.0
+Test FloatPointIterator_01; Subtest test9; Result: 0.0

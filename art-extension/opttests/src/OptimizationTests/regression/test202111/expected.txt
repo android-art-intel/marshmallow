@@ -1,0 +1,2 @@
+java.lang.ArithmeticException: divide by zero
+	at OptimizationTests.regression.test202111.Main.main(Main.java:29)

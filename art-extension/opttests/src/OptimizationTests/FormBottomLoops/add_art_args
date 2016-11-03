@@ -1,0 +1,1 @@
+-Xcompiler-option --print-passes=form_bottom_loops

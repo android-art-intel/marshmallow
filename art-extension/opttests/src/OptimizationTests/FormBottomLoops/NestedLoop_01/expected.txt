@@ -1,0 +1,12 @@
+Test NestedLoop_01; Subtest test1; Result: 593450
+Test NestedLoop_01; Subtest test10; Result: 231192
+Test NestedLoop_01; Subtest test11; Result: -81854
+Test NestedLoop_01; Subtest test12; Result: -2147482550
+Test NestedLoop_01; Subtest test2; Result: 226160
+Test NestedLoop_01; Subtest test3; Result: -288096
+Test NestedLoop_01; Subtest test4; Result: 39166308
+Test NestedLoop_01; Subtest test5; Result: 10
+Test NestedLoop_01; Subtest test6; Result: 171
+Test NestedLoop_01; Subtest test7; Result: 1516358
+Test NestedLoop_01; Subtest test8; Result: 313510
+Test NestedLoop_01; Subtest test9; Result: 0

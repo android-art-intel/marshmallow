@@ -1,0 +1,12 @@
+Test ForLoop_01; Subtest test1; Result: 312950
+Test ForLoop_01; Subtest test10; Result: 2009
+Test ForLoop_01; Subtest test11; Result: -77548
+Test ForLoop_01; Subtest test12; Result: -2147482550
+Test ForLoop_01; Subtest test2; Result: 6560
+Test ForLoop_01; Subtest test3; Result: 30
+Test ForLoop_01; Subtest test4; Result: 1
+Test ForLoop_01; Subtest test5; Result: 104187
+Test ForLoop_01; Subtest test6; Result: 623
+Test ForLoop_01; Subtest test7; Result: 10
+Test ForLoop_01; Subtest test8; Result: 313510
+Test ForLoop_01; Subtest test9; Result: 0

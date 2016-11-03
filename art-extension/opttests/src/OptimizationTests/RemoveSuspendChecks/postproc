@@ -1,0 +1,33 @@
+#!/bin/bash
+#
+# Copyright (C) 2015 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+logcat=$1
+
+cat ${logcat} | grep -A 3 "remove_loop_suspend_checks: Begin: .*Main.testLoop()" | grep -E "remove_loop_suspend_checks: Remove the suspend check from loop [0-9]+, preheader = [0-9]+"
+
+# remove_loop_suspend_checks: Begin: int OptimizationTests.RemoveSuspendChecks.ConstDoLoopBound_1.Main.testLoop()
+# remove_loop_suspend_checks: Visit 2, preheader = 1
+# remove_loop_suspend_checks: Remove the suspend check from loop 2, preheader = 1
+# remove_loop_suspend_checks: End: int OptimizationTests.RemoveSuspendChecks.ConstDoLoopBound_1.Main.testLoop()
+
+if [ "$?" == "0" ]; then
+    echo "post-processing PASSED: Loop Suspend Check was successfully removed from the testLoop method"
+    exit 0
+else
+    echo "post-processing FAILED: Loop Suspend Check was not removed from the testLoop method - unexpected"
+    exit 1
+fi

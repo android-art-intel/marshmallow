@@ -1,0 +1,181 @@
+Test suite name
+---------------
+
+ART Optimization Test Suite
+
+Description
+-----------
+
+TEST SUITE STRUCTURE
+
+It is supposed that tests directories structure is as follows:
+
+src/
+    OptimizationTests/
+        Test_Package_1/
+            Testdir_001/
+                Main.java, package OptimizationTests.Subsuite.Testdir_001
+                other *.java
+                [build]
+                [run]
+                [expected.txt],f there is no expected.txt, you should provide diffexp script to check the test exit
+                [add_art_args]
+                [postproc]
+            Testdir_002/
+            ......
+        [build]
+        [run]
+        [add_art_args]
+        [postproc_common]
+    Test_Package_2/
+    .....
+
+As an example of test directories structure, please see OptimizationTests packages.
+
+Unless test package or test contains its own build, run or diff, it uses default build, run and diff from etc/ directory.
+The scope of build/run/diff can be test level or package level.
+
+Each test package or test can set
+    - it's own additional art options in the file named add_art_args,
+    - postproc script that accepts logcat as a parameter.
+So the scope of add_art_args and postproc could be test level or package level. Package level post-processing script should be named postproc_common.
+
+QA area
+-------
+
+Tests cover optimizations in ART.
+
+Origin
+------
+
+Test suite is developing by QA in connection with developers team.
+
+
+How to run the tests
+--------------------
+
+How to run a subset of the tests
+--------------------------------
+
+Before building and running tests make sure that you have a valid path to JAVA_HOME and to ANDROID_SDK_ROOT.
+
+$ export VM_ARGS="<a list of args >"
+$ export VM_RUNTIME=[DVM|ART|ART64]
+$ export VM_COMMAND=[dalvikvm|dalvikvm64]
+
+$ ./run-tests -h
+   Usage: run-tests [-hvprd] [PACKAGELIST=... TESTLIST=... TESTS=... TEST_LIST=... VM_ARGS=... RESULTS_DIR=... TIMEOUT=... EXCLUDE=... ANDROID_BUILD_TOP=...  RERUNS=... STRESS_RUNNER=...]
+
+   -h: prints this message
+   -v: set verbose mode 'on', default mode is 'off'
+   -p: set postprocessing 'on' (it means that logcat will be checked according to the postproc script), default is 'off'
+   -r: set regular run 'on' (it means that logcat will be removed for all passed tests), default is 'off' (useful for creating and debugging tests)
+   -d: run the tests using the host virtual machine; ANDROID_BUILD_TOP pointing to the build tree should be defined
+
+   PACKAGELIST="<list of packages to be run (or regular expressions corresponding to package names) >", e.g. PACKAGELIST="ShortMethodsInlining Loop"
+                         default PACKAGELIST is "all"
+                         deprecated: use TESTS or TEST_LIST
+   If only one package is set, TESTLIST can contain the list of tests to be run.
+
+   TESTLIST="<list of tests (or regular expressions corresponding to test names) to be run in defined package>",
+            e.g. TESTLIST="InvokeDirectRange_a_007 InvokeDirectRange_a_008"
+                         default TESTLIST is "all"
+                         deprecated: use TESTS or TEST_LIST
+
+   TESTS="a list of test names separated with spaces"
+                        test name should be written as <package_name>/test_name>, e.g. CopyPropagation/Mixed_02,
+                        or as <package_name>, e.g. as CopyPropagation; in this case all tests from CopyPropagation package are executed.
+                        default: n/a.
+                        If the value is not defined, then the list of tests is taken from TEST_LIST.
+
+   TEST_LIST=<the name of a file containing the list of tests or test packages>
+                         default name is <root_dir>/testlist
+                         If the file does not exist, then all tests will be executed
+
+   VM_ARGS="<list of dalvikvm arguments>" e.g. VM_ARGS="-Xint:jit -Xjitverbose"
+                         default VM_ARGS="-Xint:jit"
+   VM_ARGS_GO_OVER="<a list of dalvikvm options that should be added to the dalvikvm command line one by one>"
+                         so that all the tests will be executed a few times
+                         with one of the options added to VM_ARGS list each time.
+                         default list for VTuneSupportTests is -Xjitvtuneinfo:jit
+                         default value for other test suites is empty
+   RESULTS_DIR=<path to directory with test results>
+                         default RESULTS_DIR is <current directory>/results
+   TIMEOUT=<N>, where N is the number of seconds to wait before terminating the test
+                         default N is 60;
+                         it is recommended to run 'regression' package with the value '3600'
+   EXCLUDE=<path to exclude list>
+                         default EXCLUDE is <current directory>/exclude
+   ANDROID_BUILD_TOP=<path to the build tree>
+                         default is not defined
+   ANDROID_LOG_TAGS=<host mode verbosity level>
+                         default ANDROID_LOG_TAGS=":D"
+   RERUNS=<N>, where N is the number test reruns in case of post-processing failure, which could be due to jitting is not 100% garanteed
+               Aimed to reduce false alarms during patch testing
+   STRESS_RUNNER=[on|off] defines stressed mode of run, for which StressRunner is used
+
+Before running tests you need explicitly set VM_RUNTIME=[ART|ART64] and VM_COMMAND=[dalvikvm|daalvikvm64]
+
+Use unified script run.sh to run the whole suite.
+
+Examples 
+--------
+
+$ export VM_ARGS="-Xcompiler-option --compiler-filter=O2"
+$ export VM_RUNTIME=ART64
+$ export VM_COMMAND=dalvikvm64
+$ ./run-tests -p PACKAGELIST=LoopAccumulationSinking
+
+How to run the tests in host mode
+----------------------------------
+
+$ export ANDROID_BUILD_TOP=<path to dir where host mode build is located i.e. path to 'out' dir>
+$ HOST_MODE=on ./run.sh
+   or
+$ ./run.sh -d 
+
+Test results
+------------
+
+Test results are collected in RESULTS_DIR, which is `pwd`/'results' by default. 
+Each test has it's own result directiry with
+
+logcat
+output.txt
+testlog.txt
+
+To save disk space you can use -r option. In this case logcat will be saved only if the test failed.
+
+Execution time
+--------------
+
+The test suite is constanly being developed. While this README is being written, the suite contains about 1500 tests which execution time is more then an hour.
+
+
+How to build the tests
+-----------------------
+
+Before building and running tests make sure that you have a valid path to JAVA_HOME and to ANDROID_SDK_ROOT
+
+$ ./build -h
+   The script compiles or clean test packages.
+   Usage: build [-h] [ MODE=..., PACKAGELIST=..., DEPLOY_DIR=..., VM_RUNTIME=[DVM|ART] ]
+
+   -h: prints this message
+   -v: set verbose mode 'on', default mode is 'off'
+
+   MODE=[compile|clean], default MODE is 'compile'
+   PACKAGELIST="<list of packages to be compiled or cleaned>" e.g. PACKAGELIST="ShortMethodsInlining Loop"
+                         default PACKAGELIST is 'all'
+   DEPLOY_DIR=<path to directory with test binaries>
+                         default DEPLOY_DIR is <current directory>
+   VM_RUNTIME - you need explicitly set it in case of ART
+
+   In case of empty arguments list the script will compile all packages in the current directory to <curent directory>/bin
+
+Example:
+
+$ ./build PACKAGELIST=CopyPropagation VM_RUNTIME=ART
+
+
+

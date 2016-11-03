@@ -1,0 +1,62 @@
+#!/bin/bash
+#
+# Copyright (C) 2015 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+logcat=$1
+str_res=""
+res=0
+
+packagename=$(basename `cd $packagedir ; pwd`)
+metapackagename=$(dirname `cd $packagedir ; pwd`)
+testname=${PWD##*/}
+
+if adb shell getprop ro.product.cpu.abi | grep "64"  > /dev/null 2>&1; then
+    BITS="x86_64"
+else 
+    BITS="x86"
+fi
+
+ANDROID_DATA=${ANDROID_DATA:="/data/"}
+
+
+function Exit()
+{
+   if [ $1 == 1 ]; then
+       echo "FAILED:" $2
+   else 
+       echo "PASSED:" $2
+   fi
+
+   exit $1
+}
+function ExpectedApplied_postproc()
+{
+    expectedCount=$1
+    actualCount=`cat ${logcat} | grep "remove_unused_loops: Remove loop blocks: " | wc -l`
+    
+    if [[ "${actualCount}" == "${expectedCount}" ]]; then
+        str_res+="EXPECTED: \"remove_unused_loops: Remove loop blocks\" found ${actualCount} time(s)"
+        res=0
+    else
+        str_res+="UNEXPECTED: remove_unused_loops: Remove loop blocks found ${actualCount} time(s) instead of $expectedCount"
+        res=1
+    fi
+    Exit $((res)) "$str_res"
+
+}
+
+ExpectedApplied_postproc $expectedCount
+

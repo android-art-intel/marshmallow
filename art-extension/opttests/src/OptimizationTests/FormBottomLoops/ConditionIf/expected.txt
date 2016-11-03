@@ -1,0 +1,10 @@
+Test ConditionIf; Subtest test1; Result: 303376
+Test ConditionIf; Subtest test2; Result: -131889884
+Test ConditionIf; Subtest test3; Result: 153489
+Test ConditionIf; Subtest test4; Result: 315
+Test ConditionIf; Subtest test4a; Result: 315
+Test ConditionIf; Subtest test5; Result: 31
+Test ConditionIf; Subtest test6; Result: 319
+Test ConditionIf; Subtest test6a; Result: 319
+Test ConditionIf; Subtest test7; Result: 35
+Test ConditionIf; Subtest test8; Result: 152673

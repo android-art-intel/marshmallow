@@ -1,0 +1,2 @@
+Initial nextJ value is -10
+Final nextJ value is 32785

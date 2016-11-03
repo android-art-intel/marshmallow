@@ -1,0 +1,163 @@
+#!/bin/bash
+#
+# Copyright (C) 2015 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+logcat=$1
+str_res=""
+res=0
+
+packagename=$(basename `cd $packagedir ; pwd`)
+metapackagename=$(dirname `cd $packagedir ; pwd`)
+testname=${PWD##*/}
+packagename=${PWD%%/$testname}
+packagename=${packagename##*/}
+metapackagename=${PWD%%/$packagename/$testname}
+metapackagename=${metapackagename##*/}
+
+function Exit()
+{
+
+   if [ ! $1 = 0 ]; then
+       echo -e "FAILED:\n"$2
+   else 
+       echo -e "PASSED:\n"$2
+   fi
+
+   exit $1
+}
+
+
+function ExtractMethodLogcat() {
+    methodName=$1
+    number_regexp='^[0-9]+$'
+    pattern="form_bottom_loops: Begin: .* ${metapackagename}.${packagename}.${testname}.Main"
+
+    linenumber1=`grep -n -E "${pattern}\.${methodName}\(" ${logcat} | cut -f1 -d: | head  -1`
+
+    if ! [[ $linenumber1 =~ $number_regexp ]] ; then
+#echo "UNEXPECTED: Constant Calculation Sinking messages not found, check if optimization is not disabled"
+        return
+    fi
+
+    pattern_end="form_bottom_loops: End: .* ${metapackagename}.${packagename}.${testname}.Main"
+
+#    linenumber2=`tail -n +$((linenumber1+1)) $logcat |grep -n -E "${pattern}"  | grep -v -E "${methodName}\(" | cut -f1 -d: | head  -1`
+    linenumber2=`grep -n -E "${pattern_end}\.${methodName}\(" ${logcat} | cut -f1 -d: | head  -1`
+
+
+    flag_no_other_methods="false"
+    if [[ "x$linenumber2" == "x" ]]; then
+        linenumber2=`cat ${logcat} | wc -l`
+        flag_no_other_methods="true"
+#    else 
+# remember that we cut linenumber 1 lines when calculating linenumber2
+#        linenumber2=$((linenumber2+linenumber1))
+    fi
+
+
+    if ! [[ $linenumber2 =~ $number_regexp ]] ; then
+        return
+    fi
+
+    if [[ $flag_no_other_method =~ "true" ]] ; then 
+       linenumber2=$((linenumber2-1))
+    fi
+    
+
+    sed -n ${linenumber1},${linenumber2}p  ${logcat} > ${logcat}_${methodName}
+    if [ ! -s ${logcat}_${methodName} ] ; then
+       str_res+="UNEXPECTED: Failed to extract form_bottom_loops messages for method ${methodName} from logcat file ${logcat}\n"
+       res=$((res + 1))
+       return
+    fi
+
+    
+}
+
+
+
+function ExpectedApplied_postproc()
+{
+    expectedMessage="$1"
+    methodName="$2"
+    logcat_file=${logcat}_$methodName
+    unexpectedMessage="$3"
+    expectedMessageCount="$4"
+#    unexpectedMessageCount="$5"
+    if [[ -z $unexpectedMessage ]] ; then
+# fake message, not expecting to meet it in logcat
+        unexpectedMessage="QQQQQQ"
+    fi
+
+    ExtractMethodLogcat $methodName
+
+    if [ ! -s ${logcat_file} ] ; then 
+        str_res+="UNEXPECTED: Failed to extract form_bottom_loops messages for method ${methodName}\n"
+        res=$((res + 1))
+        return
+    fi
+
+
+#    if cat ${logcat_file} | grep "${expectedMessage}" 2>&1 > /dev/null ; then 
+    expectedMessageFoundTimes=`cat ${logcat_file} | grep "${expectedMessage}" | wc -l`
+    unexpectedMessageFoundTimes=`cat ${logcat_file} | grep "${unexpectedMessage}" | wc -l`
+    if [[ "x${expectedMessageFoundTimes}" == "x${expectedMessageCount}" ]] ; then 
+        str_res+="EXPECTED: message "${expectedMessage}" found for method $methodName ${expectedMessageFoundTimes} times;\n"
+        res=$((res + 0))
+        if [[ "x${unexpectedMessageFoundTimes}" != "x0" ]]  ; then
+            str_res+="UNEXPECTED: message "${unexpectedMessage}" found for method $methodName ${unexpectedMessageFoundTimes} times, but expected 0 times ;\n"
+            res=$((res + 1))
+        else
+#            str_res+="EXPECTED: message "${unexpectedMessage}" NOT found for method $methodName;\n"
+            res=$((res + 0))
+        fi
+    else
+        str_res+="UNEXPECTED: message "${expectedMessage}" found for method $methodName ${expectedMessageFoundTimes} times, but expected ${expectedMessageCount} times;\n"
+        res=$((res + 1))
+    fi
+
+}
+
+#Clean-up results dir before processing logcat:
+rm -f ${logcat}_*
+
+#Iterate over methods:
+# parsing 'methodName:expectedMessage==count!unexpectedMessage==count'
+for str in "${testMethodsCounts[@]}" ; do
+     methodName="${str%:*}"
+     expectedMessage="${str#*:}"
+     if [[ $str =~ .*!.* ]] ; then 
+         expectedMessage="${expectedMessage%!*}"
+         unexpectedMessage="${str#!*}"
+     else
+        unexpectedMessage=""
+    fi
+    if [[ $expectedMessage =~ .*==.* ]] ; then 
+        expectedMessageCount="${expectedMessage#*==}"
+        expectedMessage="${expectedMessage%==*}"
+    else 
+        expectedMessageCount="1"
+    fi
+
+     ExpectedApplied_postproc "${expectedMessage}" "${methodName}" "${unexpectedMessage}" "${expectedMessageCount}"  
+
+done
+
+Exit $((res)) "$str_res"
+
+   
+
+

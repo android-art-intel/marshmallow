@@ -1,0 +1,4 @@
+java.lang.NullPointerException: Attempt to write to null array
+	at OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeSuperAThrowNullSet_002.SuperTest.setThingies(SuperTest.java:31)
+	at OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeSuperAThrowNullSet_002.Test.setThingies(Test.java:30)
+	at OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeSuperAThrowNullSet_002.Main.main(Main.java:36)

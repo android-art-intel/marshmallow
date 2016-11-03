@@ -1,0 +1,1 @@
+-Xcompiler-option --print-passes=TrivialLoopEvaluator -Xcompiler-option --disable-passes=LoopFullUnroller

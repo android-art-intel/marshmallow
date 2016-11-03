@@ -1,0 +1,12 @@
+Test WhileLoop_01; Subtest test1; Result: 312950
+Test WhileLoop_01; Subtest test10; Result: 2009
+Test WhileLoop_01; Subtest test11; Result: -77274
+Test WhileLoop_01; Subtest test12; Result: -2147482550
+Test WhileLoop_01; Subtest test2; Result: 12010
+Test WhileLoop_01; Subtest test3; Result: 30
+Test WhileLoop_01; Subtest test4; Result: 1
+Test WhileLoop_01; Subtest test5; Result: 104187
+Test WhileLoop_01; Subtest test6; Result: 623
+Test WhileLoop_01; Subtest test7; Result: -1
+Test WhileLoop_01; Subtest test8; Result: 313510
+Test WhileLoop_01; Subtest test9; Result: 0

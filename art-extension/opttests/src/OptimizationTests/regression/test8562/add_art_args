@@ -1,0 +1,1 @@
+-Xcompiler-option --compiler-filter=interpret-only

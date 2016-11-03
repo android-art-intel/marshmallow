@@ -1,0 +1,331 @@
+#!/bin/bash
+#
+# Copyright (C) 2015 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+function Help()
+{
+cat <<HELP_MSG
+   The script compiles or clean test packages.
+   Usage: build [-h] [ MODE=..., PACKAGELIST=..., DEPLOY_DIR=..., VM_RUNTIME=[DVM|ART] ]
+
+   -h: prints this message
+   -v: set verbose mode 'on', default mode is 'off'
+
+   MODE=[compile|clean], default MODE is 'compile'
+   PACKAGELIST="<list of packages to be compiled or cleaned>" e.g. PACKAGELIST="ShortMethodsInlining Loop"
+                         default PACKAGELIST is 'all'
+   DEPLOY_DIR=<path to directory with test binaries>
+                         default DEPLOY_DIR is <current directory>
+   VM_RUNTIME - you need explicitly set it in case of DVM
+
+   In case of empty arguments list the script will compile all packages in the current directory to <curent directory>/bin    
+HELP_MSG
+}
+
+function Exit()
+{
+   echo $2
+   exit $1
+}
+
+function Build_test()
+{
+#build script should accept the following args:
+# pckgname (subsuite name)
+# testname
+
+   ${build_to_use} $1 $2 || Exit 1 "Could not build test $1/$2 "
+
+}
+
+function Build_package()
+{
+# accepts 1 arg: pckgname
+
+#set -x
+#   if ( cd ${DEPLOY_DIR}/bin
+#     [ `find ${TESTSUITE_NAME}/$1 -name \*.class | wc -l` == 0 ] &&  Exit 1 "The specific build should be applied to buid $1.jar; Main.class does not exist"
+#     dx -JXmx4G --debug --dex --dump-to=$1_classes.lst --output=$1_classes.dex --dump-width=1000 \
+#        `find ${TESTSUITE_NAME}/$1 -name *.class` \
+#        || Exit 1 "Could not build dex file for package $1"
+#     jar cf $1.jar $1_classes.dex || Exit 1 "Could not buid $1.jar"
+#   )
+
+   if [ -d ${DEPLOY_DIR}/bin/${TESTSUITE_NAME}/$1 ] 
+   then
+       echo "Package $1 was successfully built"
+   else
+       exit 1
+   fi
+#set +x
+}
+
+msg() {
+    [ "$VERBOSE" = "on" ] && echo "$@"
+}
+
+VERBOSE="off"
+
+# Parse arguments
+while getopts "hv" opt; do
+   case $opt in
+   h) Help
+      Exit 0 ""
+      ;;
+   v) VERBOSE="on"
+      ;;
+   esac
+done
+
+shift $((OPTIND-1))
+
+msg "Left arguments: $@"
+
+while [ -n "$1" ]; do
+   case $1 in
+      MODE=* | PACKAGELIST=* | DEPLOY_DIR=* | VM_RUNTIME=* ) ;;
+      *) Help; Exit 1 " ===== An unknown argument $1 ===== ";;
+   esac
+   export "$1"
+   shift
+done
+
+. define
+
+msg "prog=$prog"
+msg "progdir=$progdir"
+
+#msg "JAVA=${JAVA_HOME}/bin/java"
+#msg "JAVAC=$JAVAC"
+
+echo "VERBOSE=${VERBOSE}"
+echo "MODE=${MODE:=compile}"
+echo "PACKAGELIST=${PACKAGELIST:=all}"
+echo "    directory for test binaries (bin) will be created in"
+echo "DEPLOY_DIR=${DEPLOY_DIR:=${progdir}}"
+echo "TESTSUITE_NAME=${TESTSUITE_NAME}"
+echo "JAVAC_OPTIONS=${JAVAC_OPTIONS}"
+
+export DEPLOY_DIR
+export VERBOSE
+export pckgname
+export testname
+
+if [ ${MODE} == "clean" ]
+then
+   if [ $PACKAGELIST == "all" ]
+   then
+      read -p "Please confirm you'd like to delete ${DEPLOY_DIR}/bin : y/N "
+      sleep 0
+      [ "$REPLY" == "y" ] || Exit 1 " Cancelled "
+
+      rm -r ${DEPLOY_DIR}/bin && Exit 0 "${DEPLOY_DIR}/bin has been deleted"
+      Exit 1 "Couldn't delete ${DEPLOY_DIR}/bin" 
+   else
+      read -p "Please confirm you'd like to delete ${DEPLOY_DIR}/bin $PACKAGELIST : y/N "
+      sleep 0
+      [ "$REPLY" == "y" ] || Exit 1 " Cancelled "
+
+      for pckgname in ${PACKAGELIST}; do
+         exit_status=0
+         rm -r ${DEPLOY_DIR}/bin/${TESTSUITE_NAME}/${pckgname} || { echo "Couldn't delete ${DEPLOY_DIR}/bin/${TESTSUITE_NAME}/${pckgname}"; exit_status=1; } 
+         rm ${DEPLOY_DIR}/bin/${pckgname}* 
+         [ exit_status == 0 ] && echo "${DEPLOY_DIR}/bin/${TESTSUITE_NAME}/${pckgname} has been deleted"
+      done
+      Exit ${exit_status} " "
+   fi
+fi
+
+build="build"
+
+run="run"
+run_to_use="${progdir}/etc/default-run"
+
+diffexp="diffexp"
+diffexp_to_use="${progdir}/etc/default-diffexp"
+
+[ ${VM_RUNTIME} == "DVM" ] && add_runtime_args="add_dalvikvm_args"
+[ ${VM_RUNTIME} == "ART" ] && add_runtime_args="add_art_args"
+[ ${VM_RUNTIME} == "ART64" ] && add_runtime_args="add_art_args"
+
+postproc="postproc"
+postproc_common="postproc_common"
+expected="expected.txt"
+testargs="testargs"
+
+[ ${PACKAGELIST:0:3} == "all" ] && PACKAGELIST=*
+
+mkdir -p ${DEPLOY_DIR}/bin
+
+# searching for build in package and test directories
+# if not found using etc/dafault-build
+
+cd src/${TESTSUITE_NAME}
+
+for pckgname in $PACKAGELIST; do
+   ( 
+      case ${pckgname} in 
+         bin* | etc* | results*) continue;;
+      esac
+      [ -d ${pckgname} ] || continue;
+      [ "$(ls -A ${pckgname})" ] || continue;
+
+      msg "pckgname=${pckgname}"
+
+      cd ${pckgname}
+      echo "Building is in progress: package ${pckgname} ...."
+      failed_to_build=0
+
+      for testname in *; do
+
+         [ "$testname" == "shared" ] && continue
+         [ "$testname" == "tools" ] && continue
+         [ "$testname" == "bin" ] && continue
+
+         build_to_use="${progdir}/etc/default-build"
+         if [ -r "${build}" ]
+         then
+            msg "Using ${pckgname}/${build}"
+            build_to_use=${progdir}/src/${TESTSUITE_NAME}/${pckgname}/${build}  
+         fi
+
+         if [ -r "${run}" ]
+         then
+            msg "Using ${pckgname}/${run}"
+            run_to_use=${progdir}/src/${TESTSUITE_NAME}/${pckgname}/${run}
+         fi
+
+         if [ -r "${diffexp}" ]
+         then
+            msg "Using ${pckgname}/${diffexp}"
+            diffexp_to_use=${progdir}/src/${TESTSUITE_NAME}/${pckgname}/${diffexp}
+         fi
+
+         if [ -r "${expected}" ]
+         then
+            msg "Using ${pckgname}/${expected}"
+            expected_to_use=${progdir}/src/${TESTSUITE_NAME}/${pckgname}/${expected}
+         else
+            expected_to_use=""
+         fi
+
+         if [ -r "${add_runtime_args}" ]
+         then
+            msg "Using ${pckgname}/${add_runtime_args}"
+            add_runtime_args_to_use=${progdir}/src/${TESTSUITE_NAME}/${pckgname}/${add_runtime_args}
+         else
+            add_runtime_args_to_use=""
+         fi
+
+         if [ -r "${postproc}" ]
+         then
+            msg "Using ${pckgname}/${postproc}"
+            postproc_to_use=${progdir}/src/${TESTSUITE_NAME}/${pckgname}/${postproc}
+         else
+            postproc_to_use=""
+         fi
+
+         if [ -r "${testargs}*" ]
+         then
+            msg "Using ${pckgname}/${testargs}"
+            testargs_to_use=${progdir}/src/${TESTSUITE_NAME}/${pckgname}/${testargs}
+         else
+            testargs_to_use=""
+         fi
+
+  #       ( 
+         [ -d "${testname}" ] || continue;
+  #       [ -d "${testname}/src" ] || continue;
+         [ "$(ls -A ${testname})" ] || continue;
+
+         savedpwd=`pwd`            
+         cd $testname
+         if [ -r "$build" ]
+         then
+            msg "Using ${testname}/${build}"
+            build_to_use=${progdir}/src/${TESTSUITE_NAME}/${pckgname}/${testname}/${build}
+         fi
+
+         ( Build_test ${pckgname} ${testname} ) || { ((failed_to_build+=1)); cd $savedpwd; continue; }
+
+         if [ '!' -r "${run}" ]; then
+            cp ${run_to_use} ${DEPLOY_DIR}/bin/${TESTSUITE_NAME}/${pckgname}/${testname}/run
+         else 
+            msg "Using ${pckgname}/${testname}/${run}"
+            cp ${run} ${DEPLOY_DIR}/bin/${TESTSUITE_NAME}/${pckgname}/${testname}/run
+         fi
+
+         if [ '!' -r "${diffexp}" ]; then
+            cp ${diffexp_to_use} ${DEPLOY_DIR}/bin/${TESTSUITE_NAME}/${pckgname}/${testname}/diffexp
+         else
+            msg "Using ${pckgname}/${testname}/${diffexp}"
+            cp ${diffexp} ${DEPLOY_DIR}/bin/${TESTSUITE_NAME}/${pckgname}/${testname}/diffexp
+         fi
+
+         if [ -r "${expected}" ]; then
+            msg "Using ${pckgname}/${testname}/${expected}"
+            cp ${expected} ${DEPLOY_DIR}/bin/${TESTSUITE_NAME}/${pckgname}/${testname}/${expected}
+            elif [ "${expected_to_use}" != "" ]; then
+            cp ${expected_to_use} ${DEPLOY_DIR}/bin/${TESTSUITE_NAME}/${pckgname}/${testname}/${expected}
+         fi
+
+         if [ -r "${add_runtime_args}" ]; then
+            msg "Using ${pckgname}/${testname}/${add_runtime_args}"
+            cp ${add_runtime_args} ${DEPLOY_DIR}/bin/${TESTSUITE_NAME}/${pckgname}/${testname}/${add_runtime_args}
+         elif [ "${add_runtime_args_to_use}" != "" ]; then
+            cp ${add_runtime_args_to_use} ${DEPLOY_DIR}/bin/${TESTSUITE_NAME}/${pckgname}/${testname}/${add_runtime_args}
+         fi
+
+         if [ -r "${postproc}" ]; then
+            msg "Using ${pckgname}/${testname}/${postproc}"
+            cp ${postproc} ${DEPLOY_DIR}/bin/${TESTSUITE_NAME}/${pckgname}/${testname}/postproc
+         elif [ "${postproc_to_use}" != "" ]; then
+            cp ${postproc_to_use} ${DEPLOY_DIR}/bin/${TESTSUITE_NAME}/${pckgname}/${testname}/postproc
+         fi
+
+         if [ -r "${testargs}" ]; then
+            msg "Using ${pckgname}/${testname}/${testargs}"
+            cp ${testargs}* ${DEPLOY_DIR}/bin/${TESTSUITE_NAME}/${pckgname}/${testname}/
+         elif [ "${testargs_to_use}" != "" ]; then
+            cp ${testargs_to_use}* ${DEPLOY_DIR}/bin/${TESTSUITE_NAME}/${pckgname}/${testname}/${testargs}
+         fi
+
+         cd $savedpwd
+
+   #      )
+      done
+
+      if [ -r "${postproc_common}" ]
+      then
+         msg "Copy ${postproc_common} to ${DEPLOY_DIR}/bin/${TESTSUITE_NAME}/${pckgname}"
+         cp ${postproc_common} ${DEPLOY_DIR}/bin/${TESTSUITE_NAME}/${pckgname}/
+      fi
+      
+      [ ${failed_to_build} != 0 ] && { echo "Could not build ${failed_to_build} test(s) in the package ${pckgname}"; continue; }
+
+      Build_package ${pckgname}
+
+   )
+done
+cd ../../
+
+if [ "${DEPLOY_DIR}" != "${progdir}" ]
+then
+    cp -pr ${progdir}/etc ${DEPLOY_DIR}/ || Exit 1 "Could not copy etc to ${DEPLOY_DIR}/" 
+    cp -p ${progdir}/run-tests ${DEPLOY_DIR}/ || Exit 1 "Could not copy run* to ${DEPLOY_DIR}/" 
+    cp -p ${progdir}/define ${DEPLOY_DIR}/ || Exit 1 "Could not copy define to ${DEPLOY_DIR}/" 
+fi
+

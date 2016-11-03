@@ -1,0 +1,92 @@
+#!/bin/bash
+#
+# Copyright (C) 2015 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+logcat=$1
+str_res=""
+res=0
+
+function Exit()
+{
+    if [ $1 == 1 ]; then
+        echo "FAILED: " $2
+    else 
+        echo "PASSED: inlining occured as expected"
+    fi
+
+    exit $1
+}
+
+function InvokeDirect()
+{
+
+    # example of successful inlining:
+    #InvokeDirect_add_double_001/logcat:66:10-28 19:09:58.810  7431  7431 I dex2oat : Successfully inlined double OptimizationTests.ShortLeafMethodsInlining.InvokeDirect_add_double_001.Test.simple_method(double, double)
+    #InvokeDirect_add_double_001/logcat:67:10-28 19:09:58.810  7431  7431 I dex2oat : Successfully inlined double OptimizationTests.ShortLeafMethodsInlining.InvokeDirect_add_double_001.Test.shim(double, double)
+
+    cat $logcat | grep "Successfully inlined .* OptimizationTests.${pckgname}.${testname}.Test.simple_method" > /dev/null
+    if [ "$?" != "0" ]; then
+        str_res+=" Test.simple_method inlining failed "
+        echo `cat $logcat | grep "Test.simple_method"`
+        res=1
+    fi
+
+    cat $logcat | grep "Successfully inlined .* OptimizationTests.${pckgname}.${testname}.Test.shim" > /dev/null
+
+    if [ "$?" != "0" ]; then
+        str_res+=" Test.shim inlining failed "
+        echo `cat $logcat | grep "Test.shim"`
+        res=1
+    fi
+
+    Exit $((res)) "$str_res"
+
+}
+
+function InvokeStatic()
+{
+    cat $logcat | grep "Successfully inlined .* OptimizationTests.${pckgname}.${testname}.Main.simple_method" > /dev/null
+    if [ "$?" != "0" ]; then
+        str_res+=" Main.simple_method inlining failed "
+        echo `cat $logcat | grep "Main.simple_method"`
+        res=1
+    fi
+
+    Exit $((res)) "$str_res"
+
+}
+
+function InvokeVirtual()
+{
+    cat $logcat | grep "Successfully inlined .* OptimizationTests.${pckgname}.${testname}.Test.simple_method" > /dev/null
+    if [ "$?" != "0" ]; then
+        str_res+=" Test.simple_method inlining failed "
+        echo `cat $logcat | grep "Test.simple_method"`
+        res=1
+    fi
+
+    Exit $((res)) "$str_res"
+
+}
+
+case $testname in
+   InvokeDirect*) InvokeDirect
+      ;;
+   InvokeStatic*) InvokeStatic
+      ;;
+   InvokeVirtual*) InvokeVirtual
+esac
+

@@ -1,0 +1,4 @@
+i i1 i2 = 84,6,432511
+f i3 by = 1253675988,93,50
+d iArr = 4624135293544580262,-1171867
+Main.instanceCount Main.lArrFld = 3758,-616

@@ -1,0 +1,1 @@
+-Xcompiler-option --print-passes=trivial_loop_evaluator

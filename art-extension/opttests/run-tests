@@ -1,0 +1,583 @@
+#!/bin/bash
+#
+# Copyright (C) 2015 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+rootdir=$(cd $(dirname $0); pwd)
+
+function Help()
+{
+cat <<HELP_MSG
+   The script runs one or more tests.
+   Usage: run-tests [-hvprd] [PACKAGELIST=... TESTLIST=... TESTS=... TEST_LIST=... VM_ARGS=... RESULTS_DIR=... TIMEOUT=... EXCLUDE=... ANDROID_BUILD_TOP=...  RERUNS=... STRESS_RUNNER=...]
+
+   -h: prints this message
+   -v: set verbose mode 'on', default mode is 'off'
+   -p: set postprocessing 'on' (it means that logcat will be checked according to the postproc script), default is 'off'
+   -r: set regular run 'on' (it means that logcat will be removed for all passed tests), default is 'off' (useful for creating and debugging tests)
+   -d: run the tests using the host virtual machine; ANDROID_BUILD_TOP pointing to the build tree should be defined 
+
+   PACKAGELIST="<list of packages to be run (or regular expressions corresponding to package names) >", e.g. PACKAGELIST="ShortMethodsInlining Loop"
+                         default PACKAGELIST is "all"
+                         deprecated: use TESTS or TEST_LIST
+   If only one package is set, TESTLIST can contain the list of tests to be run.
+
+   TESTLIST="<list of tests (or regular expressions corresponding to test names) to be run in defined package>", 
+            e.g. TESTLIST="InvokeDirectRange_a_007 InvokeDirectRange_a_008"
+                         default TESTLIST is "all"
+                         deprecated: use TESTS or TEST_LIST
+
+   TESTS="a list of test names separated with spaces"
+                        test name should be written as <package_name>/test_name>, e.g. CopyPropagation/Mixed_02, 
+                        or as <package_name>, e.g. as CopyPropagation; in this case all tests from CopyPropagation package are executed.
+                        default: n/a.
+                        If the value is not defined, then the list of tests is taken from TEST_LIST.
+                         
+   TEST_LIST=<the name of a file containing the list of tests or test packages>
+                         default name is <root_dir>/testlist
+                         If the file does not exist, then all tests will be executed
+
+   VM_ARGS="<list of dalvikvm arguments>" e.g. VM_ARGS="-Xint:jit -Xjitverbose"
+                         default VM_ARGS="-Xint:jit"
+   VM_ARGS_GO_OVER="<a list of dalvikvm options that should be added to the dalvikvm command line one by one>"
+                         so that all the tests will be executed a few times 
+                         with one of the options added to VM_ARGS list each time.
+                         default list for VTuneSupportTests is -Xjitvtuneinfo:jit
+                         default value for other test suites is empty
+   RESULTS_DIR=<path to directory with test results>
+                         default RESULTS_DIR is <current directory>/results
+   TIMEOUT=<N>, where N is the number of seconds to wait before terminating the test
+                         default N is 60 
+   EXCLUDE=<path to exclude list>
+                         default EXCLUDE is <current directory>/exclude
+   ANDROID_BUILD_TOP=<path to the build tree>
+                         default is not defined 
+   ANDROID_LOG_TAGS=<host mode verbosity level>
+                         default ANDROID_LOG_TAGS=":D"
+   RERUNS=<N>, where N is the number test reruns in case of post-processing failure, which could be due to jitting is not 100% garanteed
+               Aimed to reduce false alarms during patch testing
+   STRESS_RUNNER=[on|off] defines stressed mode of run, for which StressRunner is used
+HELP_MSG
+}
+
+function Exit()
+{
+   echo $2
+   exit $1
+}
+
+logcat_pid=$!
+
+# the workaround for ABIT-1267:
+# sometimes "adb logcat -c" doesn't work correctly on ECS7 devices on ND
+function clean_logcat() {
+  ${ADB} logcat -c
+#  ${ADB} logcat -d
+  messages_num=`${ADB} logcat -d | wc -l`
+  if [ "$messages_num" -eq "0" ]; then
+    return
+  fi
+
+  #${ADB} shell killall /system/bin/logd
+  ${ADB} shell pkill /system/bin/logd
+  logd=`${ADB} shell "ps | grep logd"`
+  # adding the limit just in case. Usually it takes 2-3 iterations
+  a=20
+  while [[ -z "${logd}" && $((a--)) -ne 0 ]]
+  do
+    logd=`${ADB} shell "ps | grep logd"`
+    sleep 1
+  done
+}
+
+function Start_logcat()
+{
+    if [ $HOST_MODE == "off" ]; then
+        #${ADB} logcat -c
+        clean_logcat
+        sleep ${LOGCAT_DELAY}
+#        ${ADB} logcat > ${test_results}/${logcat} &
+#        logcat_pid=$!
+#        msg "Logcat started, pid: ${logcat_pid}..."
+    fi
+}
+
+function Stop_logcat()
+{
+    if [ $HOST_MODE == "off" ]; then
+#        [ -z "${logcat_pid}" ] && return ${logcat_pid}
+#        msg "Stopping logcat, pid: ${logcat_pid}..."
+#        kill ${logcat_pid}
+#        wait ${logcat_pid} 2>/dev/null
+        sleep ${LOGCAT_DELAY}
+#        ${ADB} logcat -d > ${test_results}/${logcat}               #  default
+        ${ADB} logcat -v threadtime -d > ${test_results}/${logcat} #  for RemoveGoto etc.
+#         ${ADB} logcat -f ${LOGCATS}/logcat.AOT -r 1024 -n 10 -d      # for BEComp
+#         ${ADB} pull ${LOGCATS}/logcat.AOT ${test_results}/${logcat}  # for BEComp
+    fi
+}
+
+function Run_test()
+{
+   extra_vm_arg=$1
+   if [ -n "$extra_vm_arg" ]; then 
+       if echo "$extra_vm_arg" | grep ':' > /dev/null; then
+           test_results_suffix="_$(echo $1 | cut -d'X' -f2 | cut -s -d':' -f2)"
+       else
+           test_results_suffix="_$(echo $1 | cut -d'X' -f2)"
+       fi
+   fi
+   msg "Run_test: testname=$testname"
+   msg "Run_test: pckgname=$pckgname"
+   test_dir=`pwd`
+   verbslog="verbslog"
+   testlog="testlog.txt"
+   pass_args_to_test=""
+   vm_args_test="${VM_ARGS} $extra_vm_arg"
+   export vm_args_test
+
+   if ! [ -r "${test_dir}/${expected}" ]; then
+       if ! [ -x "${test_dir}/${diffexp}" ]; then 
+           echo "${test_dir}: missed ${expected}"
+           return
+       fi
+   fi
+   [ -r "${test_dir}/${add_runtime_args}" ] && [ "${POSTPROC}" == "on" ] \
+      && { vm_args_test+=" "; vm_args_test+="$(eval echo $(cat ${add_runtime_args} | sed -e s@\\\;@\\\\\\\\\;@g))"; msg "vm_args_test=${vm_args_test}"; export vm_args_test; }
+#      && { vm_args_test+=" "; vm_args_test+=`cat ${add_dalvikvm_args}`; msg "vm_args_test=${vm_args_test}"; export vm_args_test; }
+
+   [ -r "${test_dir}/${testargs}" ] && { pass_args_to_test=`cat ${testargs}`; msg "pass_args_to_test=${pass_args_to_test}"; export pass_args_to_test; }
+
+   test_results=${RESULTS_DIR}/${TESTSUITE_NAME}/${pckgname}/${testname}${test_results_suffix}
+   export test_results
+   #rm -r ${test_results}
+   mkdir -p ${test_results}
+
+   echo "${test_dir}: running ${test_results_suffix} ..." 1>&2
+   [ "$VERBOSE" = "off" ] && verbslog="/dev/null"
+   [ "$VERBOSE" = "on" ] && { verbslog=${test_results}/${verbslog}; rm -f ${verbslog}; }
+   export verbslog
+
+   testlog=${test_results}/${testlog}
+   rm -f ${testlog}
+   rm -f ${test_results}/$expected
+   rm -f ${output}
+   export testlog
+   export output
+
+# run loop begin
+##############
+
+   RERUNS_CURR=$((RERUNS))
+   while true; do
+      Start_logcat
+
+      test_status=FAILED
+      start_time=`date +%s`
+
+      if [ $HOST_MODE == "on" ]; then
+         "./${run}" ${pckgname} ${testname} "${vm_args_test}" "${pass_args_to_test}" > "${test_results}/${output}" 2> "${test_results}/${logcat}"
+      else
+         "./${run}" ${pckgname} ${testname} "${vm_args_test}" "${pass_args_to_test}" > "${test_results}/${output}" 2>&1
+      fi
+#     res=$?
+
+      end_time=`date +%s`
+      (( run_time = end_time - start_time ))
+
+      Stop_logcat
+
+      [ "$VERBOSE" = "on" ] && cat ${verbslog}
+
+# --- this code will work for host mode only, push_and_run_jar always return 0, when run dalvik (not zygote)
+# --- another thing that we'll not copy expected.txt to the results dir
+# --- there are tests that return non-zero exit code by design, e.g. tests/Heavy_Ojbect_Array_Workload
+#      if [ $res -ne 0 ]; then
+#         echo "${test_dir}: FAILED!" 1>&2
+#         ((failed += 1))
+#         failedNames+=" ${pckgname}/${testname}"
+#         break
+#      fi
+# ---
+
+# check that run, diffexp and postproc return 0; test fails otherwise
+      if [ -f "${expected}" ]; then
+          "./${diffexp}" "${expected}" "${test_results}/${output}" > /dev/null
+          res=$?
+          if [ $res -ne 0 ]; then
+              cp "${expected}" "${test_results}/"
+              ( echo "${test_dir}: FAILED!"
+                echo " " | tee -a "${testlog}"
+                echo "#################### diffs" | tee -a "${testlog}"
+                "./${diffexp}" "${expected}" "${test_results}/${output}" | tee -a "${testlog}" 2>&1
+                echo "####################" | tee -a "${testlog}"
+                echo " " | tee -a  "${testlog}"
+              ) 1>&2
+          fi
+      else
+          "./${diffexp}" >> "${testlog}" 2>&1
+          res=$?
+          [ $res -ne 0 ] && echo "${test_dir}: FAILED!"
+      fi
+
+      if [ "${res}" != "0" ]; then
+         ((failed += 1))
+         failedNames+=" ${pckgname}/${testname}"
+         break
+
+      else  # [ "${res}" = "0" ]
+         msg " test output == expected"
+
+         postprocres=0
+# in case POSTPROC is off it'll look like postproc check is passed
+# [ "${POSTPROC}" = "on" ] && [ -r "${postproc}" ] && { "./${postproc}"  ${test_results}/${logcat} >/dev/null; postprocres=$?; }
+         if [ "${POSTPROC}" = "on" ] && [ -r "${postproc}" ]; then
+            msg "postprocessing ..."
+            echo "postprocessing results ... " >> ${testlog}
+#            sync
+#            sleep 1
+            "./${postproc}"  ${test_results}/${logcat} ${test_results}/${pluginlog} >> ${testlog} 2>&1
+            postprocres=$?
+         fi
+
+         if [ "${postprocres}" = "0" ]; then
+            [ "${POSTPROC}" = "on" ] && [ -r "${postproc}" ] && [ "${VERBOSE}" = "on" ] &&  echo "${test_dir}: postproc succeeded!" 1>&2
+            echo "${test_dir}: succeeded in ${run_time} seconds!" 1>&2
+            ((passed += 1))
+            passedNames+=" ${pckgname}/${testname}"
+
+            [ "$REGULARRUN" = "on" ]  && rm -f ${test_results}/${logcat}
+
+            test_status=PASSED
+            break
+         else
+            if [ "$((RERUNS_CURR -= 1))" != "0" ]; then
+               (    echo "#################### ${test_dir}: postproc FAILED in ${run_time} seconds, rerunning tests" 1>&2
+                    echo "postproc FAILED, rerunning test" >> ${testlog}
+                    echo "####################"
+                    echo " "
+               ) 1>&2
+               continue
+            else
+               (    echo "#################### ${test_dir}: postproc FAILED in ${run_time} seconds!" 1>&2
+                    echo "postproc FAILED" >> ${testlog}
+                    echo "####################"
+                    echo " "
+               ) 1>&2
+               ((failedpp += 1))
+               failedppNames+=" ${pckgname}/${testname}"
+               break
+            fi
+         fi
+      fi
+   done
+# run loop end
+##############
+
+   [[ -n "${CALL_BACK_SCRIPT}" ]] && "${CALL_BACK_SCRIPT}" "${pckgname}/${testname}" "$test_status" "1"
+}
+
+msg() {
+   [ "$VERBOSE" = "on" ] && echo "$@"
+}
+
+function create_all_tests_file() 
+{
+    # Look up all packages in test suite
+    for difscript in $(find ${rootdir}/bin/${TESTSUITE_NAME} -name "diffexp"); do
+        pckgname=$(dirname $(dirname $difscript))
+        echo $(basename $pckgname)
+    done | sort -u > $TEST_LIST
+}
+
+# Used to support backward compatibility with PACKAGELIST and TESTLIST 
+function compose_tests_names_from_PL_TL()
+{
+    TESTS=""
+    for testname in $(echo $TESTLIST); do
+        TESTS="$TESTS $PACKAGELIST/$testname"
+    done        
+}
+
+# Used to support backward compatibility with TESTLIST 
+function find_package_for_test_names()
+{
+    TESTS=""
+    pushd ${rootdir}/bin/${TESTSUITE_NAME} > /dev/null
+    for testname in $(echo $TESTLIST); do
+        TESTS="$TESTS `find . -name $testname | sed 's|\.\/||' | sed 's|\n||' | sed 's|\r||'`"
+    done
+    popd > /dev/null
+}
+
+VERBOSE="off"
+POSTPROC="off"
+REGULARRUN="off"
+
+# Parse arguments
+while getopts "hvprd" opt; do
+   case $opt in 
+   h) Help
+      Exit 0 "" 
+      ;;
+   v) VERBOSE="on"
+      ;;
+   p) POSTPROC="on"
+      ;;
+   r) REGULARRUN="on"
+      ;;
+   d) HOST_MODE="on"
+   esac
+done
+
+HOST_MODE=${HOST_MODE:-"off"}
+
+shift $((OPTIND-1))
+
+echo "Left arguments: $@"
+
+while [ -n "$1" ]; do
+   case $1 in
+      TESTS=* | TEST_LIST=* | TESTLIST=* | PACKAGELIST=* | VM_ARGS=* | VM_ARGS_GO_OVER=* | RESULTS_DIR=* | TIMEOUT=* | EXCLUDE=* | RERUNS=* | ANDROID_BUILD_TOP=* | STRESS_RUNNER=* ) ;;
+      *) Help; Exit 1 " ===== An unknown argument $1 ===== ";;
+   esac
+   export "$1"
+   shift
+done
+
+# Set an alias for SUBTESTS supported by Angara
+TESTLIST=${TESTLIST:="$SUBTESTS"}
+
+. define
+
+msg "prog=$prog"
+msg "progdir=$progdir"
+msg "JAVA=$JAVA"
+msg "JAVAC=$JAVAC"
+msg "ADB=$ADB"
+
+#DATE=`date +%Y%m%d_%H%M%S`
+echo "VERBOSE=${VERBOSE}"
+echo "POSTPROC=${POSTPROC}"
+echo "REGULARRUN=${REGULARRUN}"
+echo "HOST_MODE=${HOST_MODE}"
+if [ "$VM_RUNTIME" = "DVM" ]; then
+    echo "VM_ARGS=${VM_ARGS:=-Xint:jit}"
+    echo "RERUNS=${RERUNS:=3}"
+else
+    echo "VM_ARGS=${VM_ARGS:=}"
+    echo "RERUNS=${RERUNS:=1}"
+fi
+
+VM_ARGS_GO_OVER=${VM_ARGS_GO_OVER}
+if [ -z "$VM_ARGS_GO_OVER" ]; then
+    if [ "$TESTSUITE_NAME" == "VTuneSupportTests" ]; then
+        VM_ARGS_GO_OVER=-Xjitvtuneinfo:jit
+    fi
+else
+    echo "$VM_ARGS_GO_OVER"
+fi
+         
+#echo "RESULTS_DIR=${RESULTS_DIR:=${progdir}/results_$DATE}"
+echo "RESULTS_DIR=${RESULTS_DIR:=${progdir}/results}"
+echo "TESTSUITE_NAME=${TESTSUITE_NAME}"
+echo "TIMEOUT=${TIMEOUT:=60}"
+echo "EXCLUDE=${EXCLUDE:=${progdir}/exclude}"
+echo "LOGCAT_DELAY=${LOGCAT_DELAY}"
+echo "LIBLOG_THROUGHPUT_LIMIT=${LIBLOG_THROUGHPUT_LIMIT:=200/10}"
+echo "DALVIK_LOG_RETRY_DELIVERY=${DALVIK_LOG_RETRY_DELIVERY:=1/0}"
+echo "STRESS_RUNNER=${STRESS_RUNNER:=off}"
+
+# As we indroduced a unified support for TESTS and TEST_LIST, 
+# we need to provide backward compatibility for PACKAGELIST and TESTLIST.
+if [ -n "$PACKAGELIST" ]; then
+    echo "PACKAGELIST=${PACKAGELIST}" 
+fi
+if [ -z "$TESTLIST" ]; then 
+    if [ -n "$PACKAGELIST" ]; then
+        TESTS="$PACKAGELIST"
+    fi
+else
+    echo "TESTLIST=${TESTLIST}"
+    if [ -n "$PACKAGELIST" ]; then 
+        compose_tests_names_from_PL_TL
+    else
+        find_package_for_test_names
+    fi
+fi
+
+mkdir -p ${RESULTS_DIR}
+
+if [[ -n "$TESTS" ]]; then
+    echo "TESTS=\"$TESTS\""
+    TEST_LIST="$RESULTS_DIR/testlist"
+    rm -f $TEST_LIST
+    if [[ ! "$TESTS" = "all" ]]; then
+        for test in $(echo $TESTS)
+        do
+            echo $test >> "$TEST_LIST"
+       done
+    fi
+else
+    TEST_LIST=${TEST_LIST:="$rootdir/testlist"}
+fi
+if [[ ! -f "${TEST_LIST}" ]]; then
+    # Find all test packages and write them to the $TEST_LIST file
+    create_all_tests_file
+fi
+echo "TEST_LIST=$TEST_LIST"
+
+export RESULTS_DIR
+export VM_ARGS
+export VERBOSE
+export TIMEOUT
+export LIBLOG_THROUGHPUT_LIMIT
+export DALVIK_LOG_RETRY_DELIVERY
+export HOST_MODE
+export STRESS_RUNNER
+
+exclude_def="y"
+exclude_ext="n"
+
+if [ ! -r ${progdir}/exclude ]; then
+   echo "Default exclude file  ${progdir}/exclude does not exist"
+   exclude_def="n"
+fi
+
+if [[ -r ${EXCLUDE} && "${EXCLUDE}" != "${progdir}/exclude" ]]; then
+   exclude_ext="y"
+fi
+
+if [[ "${exclude_def}" = "n" && ${exclude_ext} = "n" ]]; then
+   echo "No exclude files have been defined"
+elif [[ "${exclude_def}" = "y" && ${exclude_ext} = "n" ]]; then
+   echo "No none-default exclude file has been defined"
+   cat ${progdir}/exclude | grep -v "^#.*" > ${RESULTS_DIR}/exclude_full
+elif [[ "${exclude_def}" = "n" && ${exclude_ext} = "y" ]]; then
+   echo "No default exclude file has been defined"
+   cat ${EXCLUDE} | grep -v "^#.*" > ${RESULTS_DIR}/exclude_full
+elif [[ "${exclude_def}" = "y" && ${exclude_ext} = "y" ]]; then
+   cat ${progdir}/exclude | grep -v "^#.*" > ${RESULTS_DIR}/exclude_full
+   cat ${EXCLUDE} | grep -v "^#.*" >> ${RESULTS_DIR}/exclude_full
+fi
+
+[ -r ${RESULTS_DIR}/exclude_full ] && echo "Full exclude file is ${RESULTS_DIR}/exclude_full"
+
+EXCLUDE=${RESULTS_DIR}/exclude_full
+
+PLUGIN=${progdir}/etc/plugins/run-plugin
+[ -f "$PLUGIN" ] && echo "PLUGIN=$PLUGIN" && export PLUGIN
+
+if [ "$HOST_MODE" = "on" ]; then
+    [ -z ${ANDROID_BUILD_TOP} ] && Exit 1 "Please set the ANDROID_BUILD_TOP variable with run-tests"
+    echo "ANDROID_BUILD_TOP: ${ANDROID_BUILD_TOP}"
+    export ANDROID_BUILD_TOP
+#    echo "ANDROID_LOG_TAGS: ${ANDROID_LOG_TAGS:=:D}"
+#    export ANDROID_LOG_TAGS
+    export RUN="${progdir}/etc/host-run-test-jar"
+else 
+    export RUN="${progdir}/etc/push-and-run-test-jar"
+fi
+export DIFFEXP="${progdir}/etc/diffexpected"
+
+#if [ "$SDCARDDATA" = "y" ]; then
+#    LOGCATS="/sdcard/logcats"
+#else
+#    LOGCATS="/data/logcats"
+#fi
+#$ADB shell mkdir ${LOGCATS} >> ${verbslog} 2>&1
+
+run="run"
+expected="expected.txt"
+output="output.txt"
+[ ${VM_RUNTIME} == "DVM" ] && add_runtime_args="add_dalvikvm_args"
+[ ${VM_RUNTIME} == "ART" ] && add_runtime_args="add_art_args"
+[ ${VM_RUNTIME} == "ART64" ] && add_runtime_args="add_art_args"
+diffexp="diffexp"
+postproc="postproc"
+logcat="logcat"
+pluginlog="plugin.log"
+testargs="testargs"
+
+cd bin/${TESTSUITE_NAME}
+
+excluded=0
+passed=0
+failed=0
+failedpp=0
+failedNames=""
+failedppNames=""
+failedNames=""
+passedNames=""
+excludedNames=""
+
+for line in `cat $TEST_LIST`; do 
+    # Ignore empty lines in testlist
+    if [ "`echo $line | sed -e 's/[[:blank:]]//g'`" = "" ]; then 
+        continue
+    fi
+    # It is assumed that every test directory contains the "diffexp" file,
+    # so we look up for this file to determine the test package and name.
+    [ ! -d "$line" ] && Exit 1 "ERROR: test not found: $line"
+    for difscript in $(find $line -name "diffexp" | sort); do
+        pckgname=$(dirname $(dirname $difscript))
+        testname=$(basename $(dirname ${difscript}))
+        export pckgname
+        export testname
+        pushd $pckgname > /dev/null
+        [ -r "${EXCLUDE}" ] && ( cat ${EXCLUDE} | grep "${pckgname}/${testname}" || cat ${EXCLUDE} | grep "${pckgname}/\*" )> /dev/null && \
+           { msg " EXCLUDED: Test ${pckgname}/${testname} is in exclude list"; ((excluded += 1)); excludedNames+=" ${pckgname}/${testname}"; popd; continue; }
+        pushd $testname  > /dev/null
+        if [ -n "$VM_ARGS_GO_OVER" ]; then
+            for arg in $VM_ARGS_GO_OVER; do
+                Run_test $arg
+            done
+        else 
+            Run_test
+        fi
+        popd > /dev/null
+        popd > /dev/null
+    done
+done
+
+echo "excluded: ${excluded} test(s)"
+echo "passed: ${passed} test(s)"
+echo "failed: ${failed} test(s)"
+echo "failed on post-processing: ${failedpp} test(s)"
+
+echo "LEGEND;Test ID;Results" > ${RESULTS_DIR}/${TEST_RESULT}
+
+for i in ${passedNames}; do
+#    echo "passed: $i"
+    echo "TEST;$i;PASSED;" >> ${RESULTS_DIR}/${TEST_RESULT}
+done
+
+for i in ${excludedNames}; do
+    echo "excluded: $i"
+    echo "TEST;$i;EXCLUDED;" >> ${RESULTS_DIR}/${TEST_RESULT}
+done
+
+for i in ${failedNames}; do
+    echo "failed: $i"
+    echo "TEST;$i;FAILED;" >> ${RESULTS_DIR}/${TEST_RESULT}
+done
+
+for i in ${failedppNames}; do
+    echo "failed on post-processing: $i"
+    echo "TEST;$i;FAILED_POSTPROC;" >> ${RESULTS_DIR}/${TEST_RESULT}
+done
+
+echo "TOTAL;"$((passed+failed+failedpp+excluded))";" >> ${RESULTS_DIR}/${TEST_RESULT}
+echo "FAILURES;$failed;" >> ${RESULTS_DIR}/${TEST_RESULT}

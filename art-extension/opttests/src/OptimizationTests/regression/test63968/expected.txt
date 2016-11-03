@@ -1,0 +1,24 @@
+Use class which contains method with many arguments
+Number of class instantiations: 200
+Number of iterations: 500
+Number of registers in run_call: 140
+Use class which contains method with many arguments
+Number of class instantiations: 200
+Number of iterations: 500
+Number of registers in run_call: 141
+Use class which contains method with many arguments
+Number of class instantiations: 200
+Number of iterations: 500
+Number of registers in run_call: 110
+Use class which contains method with many arguments
+Number of class instantiations: 200
+Number of iterations: 500
+Number of registers in run_call: 203
+Use class which contains method with many arguments
+Number of class instantiations: 200
+Number of iterations: 500
+Number of registers in run_call: 203
+Use class which contains method with many arguments
+Number of class instantiations: 200
+Number of iterations: 500
+Number of registers in call_3: 179

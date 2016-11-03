@@ -1,0 +1,8 @@
+i i1 s = 96,1,-21207
+i2 b i3 = 33,1,-1
+by i4 f = 69,6,1421214631
+byArr sArr fArr = -407,9532,4630305853923131392
+Main.instanceCount Main.iFld Main.fFld = 2393856319,-14216,1065353216
+Main.iArrFld Main.dArrFld = 1037073042,-4575487761675070223
+vMeth_check_sum: -1955012
+lMeth_check_sum: -423338364971458548

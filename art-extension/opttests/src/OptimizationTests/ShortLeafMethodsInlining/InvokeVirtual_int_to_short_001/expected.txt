@@ -1,0 +1,2 @@
+Initial workJ value is 123456789
+Final workJ value is -12990

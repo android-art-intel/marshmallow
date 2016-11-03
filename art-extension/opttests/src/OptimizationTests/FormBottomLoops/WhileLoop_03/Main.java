@@ -1,0 +1,254 @@
+/*
+ * Copyright (C) 2015 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package OptimizationTests.FormBottomLoops.WhileLoop_03;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
+/**
+ *
+ * Simplest case when optimization should be applied: while loop
+ *
+ **/
+
+public class Main {                                                                                                                                                   
+    final int iterations = 1100;
+
+    int count = 0;
+
+    class MyClass {
+        int value = 0;
+        int value1 = 1;
+        int value2 = 2;
+        int value3 = 3;
+        int[] arr;
+        public MyClass(int x) {
+            value = x;
+            value1 = x/2;
+            value2 = x*3;
+            value3 = x%4;
+            arr = new int[x];
+            for (int i = 0; i < x; i++) {
+                arr[i] = i*x/2;
+            }
+
+            
+        }
+        int[] getArr() {
+            return arr;
+        }
+
+        int[] modifyAndGetArr() {
+            arr[0] = 100;
+            return arr;
+        }
+
+    }
+
+    public int foo(int x) {
+        for (int i = 0; i < iterations; i++) {
+            x = x + i/2;
+        }
+         return x;
+    }
+
+    public int sideEffectFunc(int x) {
+        count++;
+        return x + count;
+
+    }
+
+     public int tryDiv(int x, int y) {
+        int res = 0;
+        try {
+            res = x/y;
+        } catch (Exception e) {
+            System.out.println("Exception when dividing " + x + " by " + y);
+            res = x/(y+1);
+        }
+        return res;
+
+    }
+
+
+    /* Positive: initial IV value uses function invocation with side effect*/
+    public int test19(int n) {
+        int testVar = 0;
+        int additionalVar1 = 1;
+
+        MyClass c = new MyClass(100);
+
+        int i = sideEffectFunc(n);
+        while ( i < iterations) {
+            testVar += 5 -  n/2 + i/2 + additionalVar1;
+            c.value +=  i + foo(testVar);
+             i += count;
+
+        }
+
+        return testVar + additionalVar1 + c.arr[0] + c.value2 - c.value3 + c.value1/2;
+    } 
+
+    /* Positive:  IV increment value uses function invocation with side effect*/
+    public int test20(int n) {
+        int testVar = 0;
+        int additionalVar1 = 1;
+
+
+        MyClass[] cc = new MyClass[iterations];
+
+        int i = sideEffectFunc(n);
+        while (i < iterations){
+            cc[i] = new MyClass(i);
+            cc[i].value = i;
+            cc[i].arr[0] = i/2;
+            testVar += 5 -  n/2 + i/2 + cc[i].value1;
+            i += sideEffectFunc(count);
+
+        }
+
+        return testVar + additionalVar1 + cc[n+2].arr[0] + cc[n+2].value2 - cc[n+2].value3 + cc[n+2].value1/2;
+    } 
+
+    /* Positive: integer overflow within loop */
+    public int test21(int n) {
+        int testVar = 3;
+        int additionalVar = Integer.MAX_VALUE/2;
+
+        int i = 0;
+        while (i < Integer.MAX_VALUE/2) {
+            i++;
+            testVar *= (5 +  n/2 + i/3 + additionalVar);
+        }
+        return testVar + additionalVar;
+    }
+
+/* Positive: unkown number of iteration at compile time, no iterations will occur with n=10*/
+    public int test22(int n) {
+
+
+        int testVar = 0;
+        int additionalVar1 = 1;
+
+
+        MyClass[] cc = new MyClass[iterations];
+        cc[0] = new MyClass(100);
+
+        int i = sideEffectFunc(n);
+        while (i < n) {
+            cc[i] = new MyClass(i);
+
+            cc[i].value = i;
+            cc[0].value = i - 1;
+            cc[i].arr[0] = i/2;
+            testVar += 5 -  n/2 + i/2 + cc[i].value1;
+            i += sideEffectFunc(count);
+
+        }
+
+        return testVar + additionalVar1 + cc[0].arr[0] + cc[0].value2 - cc[0].value3 + cc[0].value1/2;
+
+
+    }
+
+
+
+    /* Positive:  count down loop */
+    public int test23(int n) {
+        int testVar = 0;
+        int additionalVar1 = 1;
+
+        MyClass c = new MyClass(100);
+
+        int i = iterations; 
+        while (i >0){
+            testVar += 5 -  n/2 + i/2 + additionalVar1;
+            c.value +=  i + foo(testVar);
+            i--;
+
+        }
+
+        return testVar + additionalVar1 + c.arr[0] + c.value2 - c.value3 + c.value1/2;
+    }
+
+    /* Positive: count down loop */
+    public int test24(int n) {
+        int testVar = 0;
+        int additionalVar1 = 1;
+
+        MyClass c = new MyClass(100);
+
+        int i = foo(-n);
+        while (i >=  -iterations - count -c.arr[2]) {
+            testVar += 5 -  n/2 + i/2 + additionalVar1;
+            c.value +=  i + foo(testVar);
+             i = i - c.arr[1];
+
+        }
+
+        return testVar + additionalVar1 + c.arr[0] + c.value2 - c.value3 + c.value1/2 + i;
+    }
+
+
+
+
+
+
+
+    public void runTests() {
+        Class c = new Main().getClass();
+        Method[] methods = c.getDeclaredMethods();
+        Method tempMethod;
+        for (int i = 1; i < methods.length; i++) {
+            int j = i;
+            while (j > 0 &&  methods[j-1].getName().compareTo(methods[j].getName()) > 0) {
+                tempMethod = methods[j];
+                methods[j] = methods[j-1];
+                methods[j-1] = tempMethod;
+                j = j - 1;
+            }
+        }
+
+        Object[] arr = {null};
+        for (Method m: methods){
+            if (m.getName().startsWith("test")){
+                try {
+                    String names[] = c.getPackage().getName().split("\\.");
+                    String testName = names[names.length-1];
+                    System.out.println("Test "+testName+"; Subtest "+m.getName()+"; Result: "+ m.invoke(this, 10));
+                } catch (IllegalArgumentException e) {
+                    e.printStackTrace();
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+
+
+    }
+
+    public static void main(String[] args)
+    {
+        new Main().runTests();
+    }
+
+
+}  
+

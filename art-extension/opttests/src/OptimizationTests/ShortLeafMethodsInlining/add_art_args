@@ -1,0 +1,1 @@
+-Xcompiler-option --runtime-arg -Xcompiler-option -verbose:compiler

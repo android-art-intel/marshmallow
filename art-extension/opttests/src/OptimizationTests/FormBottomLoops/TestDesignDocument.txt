@@ -1,0 +1,29 @@
+FormBottomLoops Test Design Document
+
+Tests for FormBottomLoops optimization should cover basic positive cases (when top tested loop is successfully transformed to bottom tested loop) as well as optimization limitations and corner cases. 
+Post-processing script (checking that optimization is (or is not) applied) relies on output printed when "-Xcompiler-option --print-passes=form_bottom_loops" option is specified
+
+The following cases are covered:
+
+* For/While loops
+* Do-While loop: should be marked as already bottom tested
+* Nested loops
+* If/Switch inside/outside loop
+* Break/Continue statements inside loops
+* Loops with Float Point iterator
+* Count down loops
+* Regression tests for CAR-2664 (crash due to incorrect parent environment update when cloning instructions)
+    * Different combinations of function calls (inlined and not inlined), array access, using primitive and reference types, exceptions throwing etc. in loop header and loop body
+    * Integer and Float Point overflow in loop body
+    * Negative tests for limitations: 
+    - exactly one exit from the loop
+    - exactly one back edge returning to the top of the loop
+    - must be the inner loop
+    - at most 2 HPhi instructions at the top of the loop
+    - no more than 5 basic blocks in the loop
+    - header of the loop must not create values that are used outside the loop
+
+TODO:
+* Negative tests for limitation "The last instruction of the loop header must end with an HIf optimization instruction.  All existing control flow will be converted to use HIf instructions, so this is expected"
+* Byte, short, char types as loop iterator
+

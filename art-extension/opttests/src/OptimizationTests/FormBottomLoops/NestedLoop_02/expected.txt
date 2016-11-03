@@ -1,0 +1,9 @@
+Test NestedLoop_02; Subtest test13; Result: 5898108
+Test NestedLoop_02; Subtest test14; Result: 3000
+Test NestedLoop_02; Subtest test15; Result: -19248181
+Exception when dividing 5 by 0
+Test NestedLoop_02; Subtest test16; Result: -1848314
+Exception when dividing 5 by 0
+Test NestedLoop_02; Subtest test16a; Result: -1848214
+Test NestedLoop_02; Subtest test17; Result: 2045040119
+Test NestedLoop_02; Subtest test18; Result: -943352900

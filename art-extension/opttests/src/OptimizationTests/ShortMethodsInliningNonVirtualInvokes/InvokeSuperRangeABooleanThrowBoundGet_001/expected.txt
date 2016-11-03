@@ -1,0 +1,4 @@
+java.lang.ArrayIndexOutOfBoundsException: length=10; index=10
+	at OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeSuperRangeABooleanThrowBoundGet_001.SuperTest.getThingies(SuperTest.java:27)
+	at OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeSuperRangeABooleanThrowBoundGet_001.Test.getThingies(Test.java:26)
+	at OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeSuperRangeABooleanThrowBoundGet_001.Main.main(Main.java:41)

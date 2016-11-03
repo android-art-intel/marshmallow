@@ -1,0 +1,17 @@
+Test testArg1 result: 56
+Test testBranch1 result: 6324
+Test testBranch2 result: 11725
+Test testBranch3 result: -402547185
+Test testException1 result: Exception caught! divide by zero
+Test testException2 result: Exception caught! length=3; index=3
+Test testException3 result: Exception caught! Exception thrown
+Test testFakeLoop1 result: 10
+Test testGetter1 result: 62
+Test testGetter2 result: 73
+Test testInnerLoop1 result: 220226
+Test testInvoke1 result: 62
+Test testInvoke2 result: 62
+Test testMaxIter1 result: 501501
+Test testMaxIter2 result: 0
+Test testPublicVar1 result: 100
+Test testPublicVar2 result: 5200

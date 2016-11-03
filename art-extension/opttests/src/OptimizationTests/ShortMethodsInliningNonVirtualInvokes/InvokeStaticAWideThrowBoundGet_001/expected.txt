@@ -1,0 +1,3 @@
+java.lang.ArrayIndexOutOfBoundsException: length=10; index=10
+	at OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeStaticAWideThrowBoundGet_001.Main.getThingies(Main.java:24)
+	at OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeStaticAWideThrowBoundGet_001.Main.main(Main.java:40)

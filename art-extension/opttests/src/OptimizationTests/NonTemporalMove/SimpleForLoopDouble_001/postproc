@@ -1,0 +1,65 @@
+#!/bin/bash
+#
+# Copyright (C) 2015 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+
+testdir=`echo "$(cd $(dirname $0); pwd)/"`
+expectedCount="0"
+
+logcat=$1
+str_res=""
+res=0
+testname=$(dirname $0)
+
+function Exit()
+{
+   if [ $1 == 1 ]; then
+       echo "FAILED:" $2
+   else 
+       echo "PASSED:" $2
+   fi
+
+   exit $1
+}
+function ExpectedApplied_postproc()
+{
+    expectedCount=$1
+    mir_marked=`cat ${logcat} | grep "NonTemporalMove: MIR:" | grep "aput" | grep "has been marked" | wc -l`
+    non_temporal=`cat ${logcat} | grep "non_temporal" | wc -l`
+    movnti=`cat ${logcat} | grep "Movnti" | wc -l`
+    if echo $testname | grep "Long_" > /dev/null 2>&1; then
+        # 2 Movnti instructions for storing long to array
+        expectedMovntiCount=$((expectedCount*2))
+    else
+        expectedMovntiCount=$movnti
+    fi
+
+    if [[  "$movnti" == "$expectedMovntiCount" ]]; then
+        str_res+="EXPECTED: Movnti instruction found $expectedMovntiCount time(s)"
+        res=0
+    elif [[ "$movnti" != "$expectedMovntiCount" ]]; then
+        str_res+="UNEXPECTED: Movnti instruction found $movnti time(s) instead of $expectedMovntiCount"
+        res=1
+    else
+        str_res+="Postprocessing failed"
+        res=1
+    fi
+    Exit $((res)) "$str_res"
+
+}
+
+   ExpectedApplied_postproc $expectedCount
+

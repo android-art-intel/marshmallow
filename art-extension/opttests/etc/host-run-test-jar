@@ -1,0 +1,61 @@
+#!/bin/bash
+#
+# Copyright (C) 2008 The Android Open Source Project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Modified by Intel Corporation
+
+msg() {
+   [ "$VERBOSE" = "on" ] && echo "$@" >> ${verbslog}
+}
+
+# the script accepts the following args:
+pckgname=$1
+testname=$2
+vm_args_test="$3"
+pass_args_to_test="$4"
+VM_COMMAND=${VM_COMMAND:=dalvikvm}
+
+# In host mode, for some reason, dalvik does not like "\;" (e.g. "Main\;loop") in the $vm_args_test variable
+# while accepts "Main;loop"; that's why we edit $vm_args_test below.
+# On a device we don't need editing.
+# If you run a test in host mode from command line, you should use "\" before ";" in vm arguments.
+#vm_args_test=`echo $vm_args_test | sed -e s'/\\\\;/;/'`
+
+#export ANDROID_PRINTF_LOG="tag"
+
+export ANDROID_HOST_OUT="${ANDROID_BUILD_TOP}/out/host/linux-x86"
+export ANDROID_ROOT=$ANDROID_HOST_OUT
+export PATH=$ANDROID_BUILD_TOP/out/host/linux-x86/bin:$PATH
+VM_IMAGE=-Ximage:${ANDROID_ROOT}/framework/core.art
+
+#export ANDROID_DATA=${test_results}/android-data
+export ANDROID_DATA=${RESULTS_DIR}/android-data
+mkdir -p "${ANDROID_DATA}"
+export LD_LIBRARY_PATH=$ANDROID_ROOT/lib
+
+msg ""
+msg "------------------------------"
+msg "host_run: testname: ${TESTSUITE_NAME}.$pckgname.$testname.Main"
+msg "host_run: VM args: ${vm_args_test}"
+msg "host_run: pass_args_to_test=${pass_args_to_test}"
+
+rm -f ${ANDROID_DATA}/dalvik-cache/x86*/*Main.jar@classes.dex*
+
+cmdline="$VM_COMMAND -Xms256m -Xmx256m -Xss32k $VM_IMAGE $vm_args_test -cp Main.jar -ea ${TESTSUITE_NAME}.$pckgname.$testname.Main ${pass_args_to_test}"
+echo "${cmdline}" >> ${testlog} 2>&1
+${cmdline}
+
+#rm -f  "${ANDROID_DATA}"/dalvik-cache/x86*/*core.art
+#rm -f  "${ANDROID_DATA}"/dalvik-cache/x86*/*core.oat

@@ -1,0 +1,7 @@
+i i1 i2 = 96,0,64
+i3 f i4 = 79,1616086588,-1809825207
+i5 s d = 63,20698,4638645894921667721
+lArr sArr = 6699412427528434555,134975
+Main.instanceCount Main.bFld Main.byFld = 337660200,1,-90
+Main.iArrFld Main.lArrFld = -1041,89134
+lMeth_check_sum: 8929331234621676249

@@ -1,0 +1,16 @@
+Use class which contains method with many arguments
+Number of class instantiations: 200
+Number of iterations: 500
+Number of methods arguments: 36
+Use class which contains method with many arguments
+Number of class instantiations: 200
+Number of iterations: 500
+Number of methods arguments: 43
+Use class which contains method with many arguments
+Number of class instantiations: 200
+Number of iterations: 500
+Number of methods arguments: 54
+Use class which contains method with many arguments
+Number of class instantiations: 200
+Number of iterations: 500
+Number of methods arguments: 33

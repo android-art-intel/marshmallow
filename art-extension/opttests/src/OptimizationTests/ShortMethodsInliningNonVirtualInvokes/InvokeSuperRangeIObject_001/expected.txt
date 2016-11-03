@@ -1,0 +1,3 @@
+Initial nextThingy is class OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeSuperRangeIObject_001.Foo
+Final nextThingy value is class OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeSuperRangeIObject_001.Foo
+Final test.thingies value is class OptimizationTests.ShortMethodsInliningNonVirtualInvokes.InvokeSuperRangeIObject_001.Foo

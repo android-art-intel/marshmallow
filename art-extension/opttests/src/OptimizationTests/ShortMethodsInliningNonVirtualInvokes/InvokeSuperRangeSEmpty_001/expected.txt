@@ -1,0 +1,2 @@
+Initial nextThingy value is -10
+Final nextThingy value is 9

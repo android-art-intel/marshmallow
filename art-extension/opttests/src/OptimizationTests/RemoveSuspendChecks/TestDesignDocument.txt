@@ -1,0 +1,32 @@
+	The pass only applies to certain parts of loops:	
+	- The number of times the loop is execute is known at compile time (i.e. the loop must have constant bounds).	
+	- The loop must not call a method, or execute a statement that may throw an exception (such as new, throw)	
+	- The loop must not contain a return or an array length.	
+	- The loop must be the inner loop	
+	- The cost of the loop (total estimated instruction cost * number of iterations) must be less than 100000 (one million).	
+	- A multiplication has a cost of 5	
+	- A division or remainder has a cost of 50	
+	- All other instructions have a cost of 1	
+		
+	No negative tests are needed (due to the doc)	
+	Do/while loops and For loops behave differently by desigh: Bound checks are not removed while BCE pass (this is Google pass)	
+		
+	Do/while loop	
+		DoLoopCombined
+		DoLoopMul
+		DoLoopSum
+		
+	For loop	
+		ForLoopCombined
+		ForLoopCombined_1
+		ForLoopSum
+		ForLoopSumArr
+		ForLoopSumArr_1
+		ForLoopSum_1
+		
+	Enhanced for loop	
+		EnhLoopInnerCombined
+		EnhLoopInnerSum
+		EnhLoopInnerSum_1
+		EnhLoopSum
+

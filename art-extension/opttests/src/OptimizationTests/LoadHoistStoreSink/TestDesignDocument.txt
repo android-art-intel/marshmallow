@@ -1,0 +1,33 @@
+NOTE:	
+LHSS does not work for objects.	
+ART contrary to dalvik does not have virtial and temporary registers.	
+Due to this fact sinking does not occur for the test ChangedArrayPointer, which was positive for dalvik.
+	
+Typically, the load/store pair can be hoisted and sunk out of the loop if the following properties are met:	
+----------------------------------------------------------------------------------------------------------
+The load/store pair correspond to the same data location	
+We can make sure there is no other memory operation on the data location of the load/store pair	
+The load/store pair are invariant	
+Loop should not contain invokes	no tests fo LHSS
+Loop cannot throw	
+Loop is innermost											no tests for nested loops
+Get/Set instructions should not be volatile	                                                        no tests for volatile
+Get/Set instructions pair should belong to the same basic block	                                        no tests for various BB
+Get/Set instructions should be executed at every iteration of the loop	
+The basic block of the get/set instructions pair should dominate the exit block. It is not safe to proceed so because if the loop is not taken, it will generate an invalid set.	
+
+For invariant stores:	
+---------------------
+Any store candidate should alias with any other store candidate. That means if we want to sink 2 stores to the exit block, they should not alias with each other.	
+Set should not be volatile	                                                                        no tests for volatile
+Set should dominate the exit block	
+Base address of the store should be invariant	
+	
+Specific test cases that should be covered if known	
+---------------------------------------------------
+Classic load/store couple in a loop	
+Load/store couple with invariant store in a loop	
+Several load/store couples in a loop	                                                                done
+Test in nested loop: the load/store should be in the innermost loop, but it should be sunk/hoisted to correct pre-header/exit_blocks	done
+It should be tested with static and non-static memory accesses	                                        done
+

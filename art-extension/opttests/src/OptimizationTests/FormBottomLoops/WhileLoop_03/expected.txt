@@ -1,0 +1,6 @@
+Test WhileLoop_03; Subtest test19; Result: 303340
+Test WhileLoop_03; Subtest test20; Result: 12814
+Test WhileLoop_03; Subtest test21; Result: 1073741823
+Test WhileLoop_03; Subtest test22; Result: 326
+Test WhileLoop_03; Subtest test23; Result: 303926
+Test WhileLoop_03; Subtest test24; Result: 455911810

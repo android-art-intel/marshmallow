@@ -1,0 +1,81 @@
+#!/bin/bash
+#
+# Copyright (C) 2015 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+logcat=$1
+
+function Exit()
+{
+   echo $2
+   exit $1
+}
+
+function Check_sunk()
+{
+# example:
+# loadhoist_storesink: Set "v38 ArraySet [ l79 i81 i23 ]" has been successfully sunk out of the loop #3 in block #10 successfully!
+    cat ${logcat} | grep -E "loadhoist_storesink: Set \"v[0-9]+ ${field}Set \[ .+ \]\" has been successfully sunk out of the loop #[0-9]+ in block #[0-9]+ successfully!"
+    if [ "$?" == "0" ]; then
+        cat ${logcat} | grep -E "${message}"
+        if [ "$?" == "0" ]; then
+            Exit 0 "PASSED: Invariant ${field}Set has been successfully sunk out of the loop; found expected message \"${message}\""
+        else
+            Exit 1 "FAILED: Invariant ${field}Set has been successfully sunk out of the loop, but expected message \"${message}\" not found"
+        fi
+    else
+        Exit 1 "FAILED: Invariant ${field}Set has not been sunk out of the loop"
+    fi
+}
+
+function Check_hoisted_sunk()
+{
+# example:
+# loadhoist_storesink: Set/Get pair ("v66 ArraySet [ l20 i25 s55 ]" / "s48 ArrayGet [ l20 i25 ]") has been hoisted/sunk out of the loop #3 to exit block #6 successfully!
+    cat ${logcat} | grep -E "loadhoist_storesink: Set/Get pair \(\"v[0-9]+ ${field}Set \[ .+ \]\" / \".+[0-9]+ ${field}Get \[ .+ \]\"\) has been hoisted/sunk out of the loop #[0-9]+ to exit block #[0-9]+ successfully!"
+    if [ "$?" == "0" ]; then
+        cat ${logcat} | grep -E "${message}"
+        if [ "$?" == "0" ]; then
+            Exit 0 "PASSED: load/store couple ${field}Set/${field}Get has been hoisted/sunk out of the loop to exit block successfully; found expected message \"${message}\""
+        else
+            Exit 1 "FAILED: load/store couple ${field}Set/${field}Get has been hoisted/sunk out of the loop to exit block successfully, but expected message \"${message}\" not found"
+        fi
+    else
+        Exit 1 "FAILED: load/store couple ${field}Set/${field}Get has not been hoisted/sunk out of the loop to exit block"
+    fi
+}
+
+# check for negative tests
+if [ $testtype == "negative" ]; then
+     cat ${logcat} | grep -E "loadhoist_storesink: " | grep "success"
+     if [ "$?" == "0" ]; then
+          Exit 1 "FAILED: LoadHoisting/StoreSinking occurred unexpectedly"
+     else
+          cat ${logcat} | grep -E "${message}"
+          if [ "$?" == "0" ]; then
+              Exit 0 "PASSED: No LoadHoisting/StoreSinking; found expected message \"${message}\""
+          else
+              Exit 1 "FAILED: No LoadHoisting/StoreSinking as expected, but expected message \"${message}\" not found"
+          fi
+     fi
+fi
+
+# elif [ $testtype == "positive" ]
+case $tocheck in
+   sunk) Check_sunk
+   ;;
+   hoistedsunk) Check_hoisted_sunk
+esac
+

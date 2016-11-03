@@ -1,0 +1,122 @@
+#!/bin/bash
+#
+# Copyright (C) 2008 The Android Open Source Project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Modified by Intel Corporation
+
+msg() {
+   [ "$VERBOSE" = "on" ] && echo "$@" >> ${verbslog}
+}
+
+# the script accepts the following args:
+pckgname=$1
+testname=$2
+vm_args_test="$3"
+pass_args_to_test="$4"
+VM_COMMAND=${VM_COMMAND:=dalvikvm}
+ZYGOTE=${ZYGOTE:="n"}
+#SDCARDDATA=${SDCARDDATA:="y"}
+SET_LIBLOG_THROUGHPUT_LIMIT="export LIBLOG_THROUGHPUT_LIMIT=${LIBLOG_THROUGHPUT_LIMIT}"
+SET_DALVIK_LOG_RETRY_DELIVERY="export DALVIK_LOG_RETRY_DELIVERY=${DALVIK_LOG_RETRY_DELIVERY}"
+
+msg ""
+msg "------------------------------"
+msg "push_and_run: testname=${testname}"
+msg "push_and_run: pckgname=${pckgname}"
+msg "push_and_run: vm_args_test=${vm_args_test}"
+msg "push_and_run: pass_args_to_test=${pass_args_to_test}"
+msg "push_and_run: VM_ARGS=${VM_ARGS}"
+msg "push_and_run: TESTSUITE_NAME=${TESTSUITE_NAME}"
+msg "push_and_run: VERBOSE=${VERBOSE}"
+msg "push_and_run: verbslog=${verbslog}"
+msg "push_and_run: TIMEOUT=${TIMEOUT}"
+msg "push_and_run: ZYGOTE=${ZYGOTE}"
+msg "push_and_run: SDCARDDATA=${SDCARDDATA}"
+msg "push_and_run: SET_LIBLOG_THROUGHPUT_LIMIT=${SET_LIBLOG_THROUGHPUT_LIMIT}"
+msg "push_and_run: SET_DALVIK_LOG_RETRY_DELIVERY=${SET_DALVIK_LOG_RETRY_DELIVERY}"
+
+if [ "$SDCARDDATA" = "y" ]; then
+    A_DATA="/sdcard/data"
+    $ADB shell mkdir ${A_DATA} >> ${verbslog} 2>&1
+    ANDROID_DATA="/data"
+    A_EXPORT="export ANDROID_DATA=/data; "
+else
+    A_DATA="/data"
+    ANDROID_DATA="/data"
+    A_EXPORT="export ANDROID_DATA=/data; "
+fi
+
+if [ "$VM_RUNTIME" = "ART" ] || [ "$VM_RUNTIME" = "ART64" ]; then
+
+   $ADB shell rm -rf ${ANDROID_DATA}/dalvik-cache/x86/*Main.jar@classes.dex
+   $ADB shell rm -rf ${ANDROID_DATA}/dalvik-cache/x86_64/*Main.jar@classes.dex
+fi
+
+echo "${ADB} push Main.jar ${A_DATA}" > ${testlog} 2>&1
+${ADB} push Main.jar ${A_DATA} >> ${testlog} 2>&1
+
+if [ $STRESS_RUNNER == on ]; then
+    STRESSOR=${stressor:=default}
+    ITERATIONS=${ITERATIONS:=1}
+
+    echo "${ADB} push ${progdir}/StressRunner/StressRunner.jar ${A_DATA}/StressRunner.jar" > ${testlog} 2>&1
+    echo "${ADB} push ${progdir}/StressRunner//${stressor}.stress.param ${A_DATA}/stress.param" > ${testlog} 2>&1
+    ${ADB} push ${progdir}/StressRunner/StressRunner.jar ${A_DATA}/StressRunner.jar >> ${testlog} 2>&1
+    ${ADB} push ${progdir}/StressRunner/${stressor}.stress.param ${A_DATA}/stress.param >> ${testlog} 2>&1
+fi
+
+if [ "${ZYGOTE}" = "y" ]; then
+    $ADB shell ${A_EXPORT} \; cd ${A_DATA} \; dvz -classpath Main.jar Main "$@"
+else
+    A_TIMEOUT=""
+
+    check_timeout="$( $ADB shell 'timeout -t 10 echo -n 2>/dev/null; echo $?' | sed -e 's/\r//g' | sed -e 's/\n//g' )"
+
+    msg "push_and_run: check_timeout: $check_timeout"
+    
+    case $check_timeout in
+    # success
+    0) A_TIMEOUT="timeout -t ${TIMEOUT}"
+       ;;
+    # /system/bin/sh: timeout: not found 
+    127) A_TIMEOUT=""
+       ;;
+    # timeout doesn't accept -t
+    *) A_TIMEOUT="timeout ${TIMEOUT}"
+      ;;
+    esac
+
+    if [ $STRESS_RUNNER == on ]; then
+        cmdline="${A_EXPORT} cd ${A_DATA}; ${SET_DALVIK_LOG_RETRY_DELIVERY:-true}; ${SET_LIBLOG_THROUGHPUT_LIMIT:-true}; ${SET_GCOV_PREFIX:-true}; ${SET_GCOV_PREFIX_STRIP:-true}; ${A_TIMEOUT} $VM_COMMAND "$vm_args_test" -cp ${A_DATA}/StressRunner.jar:${A_DATA}/Main.jar Launcher ${TESTSUITE_NAME}.$pckgname.$testname.Main main $ITERATIONS  "${pass_args_to_test}" "
+    else # $STRESS_RUNNER == off
+        cmdline="${A_EXPORT} cd ${A_DATA}; ${SET_DALVIK_LOG_RETRY_DELIVERY:-true}; ${SET_LIBLOG_THROUGHPUT_LIMIT:-true}; ${SET_GCOV_PREFIX:-true}; ${SET_GCOV_PREFIX_STRIP:-true}; ${A_TIMEOUT} $VM_COMMAND "$vm_args_test" -cp ${A_DATA}/Main.jar ${TESTSUITE_NAME}.$pckgname.$testname.Main "${pass_args_to_test}" "
+    fi 
+
+    msg "push_and_run: command line: ${cmdline}"
+    msg "------------------------------"
+    msg ""
+
+    # Run the plugin if it exists
+    if [ -f "${PLUGIN}" ]; then
+        echo "Running ${PLUGIN}" > ${test_results}/plugin.log; \
+        bash ${PLUGIN} >> ${test_results}/plugin.log 2>&1 &
+        ppid=$!
+    fi
+
+    echo "${ADB} shell ${cmdline}" >> ${testlog} 2>&1
+    ${ADB} shell ${cmdline}
+
+    [ -n $ppid ] && wait $ppid
+fi

@@ -1,0 +1,26 @@
+D/dalvikvm(19108): Compiler: Building trace for simple_method, offset 0
+D/dalvikvm(19108): 0x45b2b2ac: 0x0090 add-int v0, v1, v1
+D/dalvikvm(19108): 0x45b2b2b0: 0x00b0 add-int/2addr v0, v1, (#0)
+D/dalvikvm(19108): 0x45b2b2b2: 0x000f return v0, (#0), (#0)
+D/dalvikvm(19108): TRACEINFO (125): 0x45b2b2ac LOptimizationTests/ShortMethodsInliningNonLeaf/InvokeStatic_add_int_2addr_NVS_001/Main;simple_method.(II)I 0 4 of 4, 3 blocks
+D/dalvikvm(19108): Compiling LOptimizationTests/ShortMethodsInliningNonLeaf/InvokeStatic_add_int_2addr_NVS_001/Main; simple_method
+D/dalvikvm(19108): 4 insns
+D/dalvikvm(19108): 3 blocks in total
+D/dalvikvm(19108): Block 0 (Entry Block) (insn 0000 - 0000 empty)
+D/dalvikvm(19108):   Fallthrough : block 1 (0000)
+D/dalvikvm(19108):   Predecessors:
+D/dalvikvm(19108): Block 1 (Code Block) (insn 0000 - 0003)
+D/dalvikvm(19108):      0000 add-int v0_1, v1_0, v1_0
+D/dalvikvm(19108):      0002 add-int v0_2, v0_1, v1_0
+D/dalvikvm(19108):      0003 return v0_2
+D/dalvikvm(19108):   Predecessors: 0
+D/dalvikvm(19108): Block 2 (Exception Handling) (insn 0000 - 0000 empty)
+D/dalvikvm(19108):   Predecessors:
+D/dalvikvm(19108): LOWER BB0 type:entry hidden:no @0x4614b8f0
+D/dalvikvm(19108): LOWER BB1 type:block0001 hidden:no @0x4614b8f0
+I/dalvikvm(19108): LOWER add-int v0, v1, v1 with offsetPC 0 offsetNCG 0 @0x4614b8f0
+I/dalvikvm(19108): LOWER add-int v0, v0, v1 with offsetPC 2 offsetNCG 0 @0x4614b8f0
+I/dalvikvm(19108): LOWER return v0, (#0), (#0) with offsetPC 3 offsetNCG 0 @0x4614b8f0
+D/dalvikvm(19108): LOWER BB2 type:exception0002 hidden:no @0x4614b90c
+D/dalvikvm(19108): -------- Emit trace for [LOptimizationTests/ShortMethodsInliningNonLeaf/InvokeStatic_add_int_2addr_NVS_001/Main;simple_method@0] binary code starts at 0x0 (cache start 0x4614b000)
+
